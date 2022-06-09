@@ -11,7 +11,7 @@ jobs:
       fail-fast: false
       matrix:
         config: 
-          - {os: macOS-latest}
+          #- {os: macOS-latest}
           - {os: ubuntu-18.04}
           - {os: ubuntu-latest}
     name: Testing main classes ${{ matrix.config.os }}
@@ -21,7 +21,7 @@ jobs:
       - name: Setting up conda
         uses: conda-incubator/setup-miniconda@v2
         with:
-          mamba-version: "0.22.1"
+          mamba-version: "*"
           channels: conda-forge, anaconda, bioconda, biocore, defaults
           channel-priority: true
           environment-file: base_juno_pipeline/envs/master_env.yaml 
