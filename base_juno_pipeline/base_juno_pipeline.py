@@ -4,6 +4,7 @@ bacteriology genomics pipeline with the format used in the IDS-
 bioinformatics group at the RIVM. All our pipelines use Snakemake.
 '''
 
+import shutil
 from base_juno_pipeline import helper_functions
 from datetime import datetime
 from pandas import read_csv
@@ -66,7 +67,7 @@ class PipelineStartup(helper_functions.JunoHelpers):
         if self.exclusion_file is not None:
             print("found exclusion file")
             self.sample_dict = self.__exclude_samples()
-            print("new dict without samples that are excluded")
+            print("new sample dict without samples that are excluded")
             print(self.sample_dict)
         print("Validating that all expected input files per sample are present in the input directory...")
         self.validate_sample_dict()
@@ -183,14 +184,18 @@ class PipelineStartup(helper_functions.JunoHelpers):
                 samples[k]['assembly'] = samples_fasta[k]['assembly']
         self.sample_dict = samples
         return samples
-
+    
     def __exclude_samples(self):
         '''Function to exclude low quality samples that are specified by the user in a .txt file, given in the argument
         parser with the option -ex or --exclude. Returns a sample dict as made in the function make_sample_dict '''
         exclude_file_path = pathlib.Path(self.exclusion_file)
-        if exclude_file_path.is_file():
-            with open(exclude_file_path) as exclude_file_open:
+        exclude_file_name = exclude_file_path.name
+        print("Exclude file path: ", exclude_file_path)
+        print("Exclude file name: ", exclude_file_name)
+        if exclude_file_path.is_file() and str(exclude_file_path).endswith(".exclude"):
+            with open(exclude_file_path, "r") as exclude_file_open:
                 exclude_samples = exclude_file_open.readlines()
+                print("samples to exclude: ", exclude_samples)
                 exclude_samples_stripped = [x.replace('\n', '') for x in exclude_samples]
                 self.sample_dict = {
                     sample:self.sample_dict[sample] for sample in self.sample_dict \
@@ -254,6 +259,7 @@ class RunSnakemake(helper_functions.JunoHelpers):
                 pipeline_version,
                 output_dir,
                 workdir,
+                exclusion_file,
                 sample_sheet=pathlib.Path('config/sample_sheet.yaml'), 
                 user_parameters=pathlib.Path('config/user_parameters.yaml'), 
                 fixed_parameters=pathlib.Path('config/pipeline_parameters.yaml'),
@@ -302,6 +308,17 @@ class RunSnakemake(helper_functions.JunoHelpers):
         self.time_limit = time_limit
         self.kwargs = kwargs
 
+        if exclusion_file is None:
+            print("exclude is none, rip")
+            print(self.output_dir)
+            # with open(self.user_parameters, "w") as fml:
+            #     yikes = fml.readlines()
+            #    print("gggggggggggg", yik#es)
+            self.exclusion_file = None
+        else:
+            self.exclusion_file = pathlib.Path(exclusion_file)
+            print("hoi")
+    
     def get_run_info(self):
         '''
         Produce info specific for the current run, like a random ID, timestamp 
@@ -310,6 +327,16 @@ class RunSnakemake(helper_functions.JunoHelpers):
         self.unique_id = uuid4()
         self.date_and_time=datetime.now().strftime('%d-%m-%Y %H:%M:%S')
         self.hostname=str(subprocess.check_output(['hostname']).strip())
+
+    def copy_exclusion_file(self):
+        '''
+        Make a copy of the exclude file.
+        '''
+        print("meep", self.exclusion_file)
+        if self.exclusion_file is not None:
+            #exclude_file_path = pathlib.Path(self.exclusion_file)
+            print("Make copy of exclude file")
+            shutil.copy(self.exclusion_file, self.path_to_audit) 
 
     def get_git_audit(self, git_file):
         '''
@@ -361,12 +388,16 @@ class RunSnakemake(helper_functions.JunoHelpers):
             f"The sample sheet ({str(self.sample_sheet)}) does not exist. Either this file was not created properly by the pipeline or was deleted before starting the pipeline."
         assert pathlib.Path(self.user_parameters).exists(), \
             f"The provided user_parameters ({self.user_parameters}) does not exist. Either this file was not created properly by the pipeline or was deleted before starting the pipeline"
+        
         git_file = self.path_to_audit.joinpath('log_git.yaml')
         self.get_git_audit(git_file)
+        
         conda_file = self.path_to_audit.joinpath('log_conda.txt')
         self.get_conda_audit(conda_file)
+        
         pipeline_file = self.path_to_audit.joinpath('log_pipeline.yaml')
         self.get_pipeline_audit(pipeline_file)
+        
         user_parameters_audit_file = self.path_to_audit.joinpath('user_parameters.yaml')
         subprocess.run(['cp', self.user_parameters, user_parameters_audit_file],
                                             check=True, timeout=60)
@@ -386,9 +417,11 @@ class RunSnakemake(helper_functions.JunoHelpers):
         print(self.message_formatter(f"Running {self.pipeline_name} pipeline."))
         
         # Generate pipeline audit trail only if not dryrun (or unlock)
+        # store the exclusion file in the audit_trail as well
         if not self.dryrun or self.unlock:
             self.path_to_audit.mkdir(parents=True, exist_ok=True)
             self.audit_trail = self.generate_audit_trail()
+            self.exclusion_file = self.copy_exclusion_file()
 
         if self.local:
             print(self.message_formatter("Jobs will run locally"))

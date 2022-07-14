@@ -153,7 +153,7 @@ class TestPipelineStartup(unittest.TestCase):
                     'fake_dir_wsamples_exclusion/sample2_R2_filt.fq.gz', 
                     'fake_dir_wsamples_exclusion/sample1.fasta',
                     'fake_dir_wsamples_exclusion/sample2.fasta',
-                    'exclusion_file/exclusion_file.txt',
+                    'exclusion_file.exclude',
                     'fake_dir_incomplete/sample1_R1.fastq',
                     'fake_dir_incomplete/sample1_R2.fastq.gz',
                     'fake_dir_incomplete/sample2_R1_filt.fq',
@@ -176,7 +176,7 @@ class TestPipelineStartup(unittest.TestCase):
         make_non_empty_file(bracken_multireport_path, content=bracken_multireport_content)
 
         for fake_file in fake_files:
-            if fake_file == "exclusion_file/exclusion_file.txt":
+            if fake_file == "exclusion_file.exclude":
                 make_non_empty_file(fake_file, content="sample1")
 
 
@@ -210,7 +210,7 @@ class TestPipelineStartup(unittest.TestCase):
         """Testing if the exclude file exists and if there is none that the pipeline continues."""
         with self.assertRaises(ValueError):
             pipeline = base_juno_pipeline.PipelineStartup(
-                pathlib.Path(exclusion_file='exclusion_file/exclusion_file.txt'), 'both')
+                pathlib.Path(exclusion_file='exclusion_file.exclude'), 'both')
             pipeline.start_juno_pipeline()
 
     def test_emptydir(self):
@@ -248,7 +248,7 @@ class TestPipelineStartup(unittest.TestCase):
                                         'R2': str(pathlib.Path('fake_dir_wsamples_exclusion').joinpath('sample2_R2_filt.fq.gz'))}}
         pipeline = base_juno_pipeline.PipelineStartup(
             pathlib.Path('fake_dir_wsamples_exclusion'), 
-            exclusion_file=pathlib.Path('exclusion_file/exclusion_file.txt'), input_type='fastq'
+            exclusion_file=pathlib.Path('exclusion_file.exclude'), input_type='fastq'
         )
         pipeline.start_juno_pipeline()
         self.assertDictEqual(pipeline.sample_dict, expected_output)
@@ -376,12 +376,14 @@ class TestRunSnakemake(unittest.TestCase):
         os.system('rm -rf fake_output_dir')
         os.system('rm -rf fake_hpcoutput_dir')
         os.system('rm -rf fake_input')
+        os.system('rm -rf exclusion_file.exclude')
 
     def test_fake_dryrun_setup(self):       
         fake_run = base_juno_pipeline.RunSnakemake(pipeline_name='fake_pipeline',
                                                     pipeline_version='0.1',
                                                     output_dir='fake_output_dir',
                                                     workdir=main_script_path,
+                                                    exclusion_file='exclusion_file.exclude',
                                                     sample_sheet='sample_sheet.yaml',
                                                     user_parameters='user_parameters.yaml',
                                                     fixed_parameters='fixed_parameters.yaml',
@@ -397,12 +399,14 @@ class TestRunSnakemake(unittest.TestCase):
         self.assertFalse(audit_trail_path.joinpath('log_pipeline.yaml').is_file())
         self.assertFalse(audit_trail_path.joinpath('sample_sheet.yaml').is_file())
         self.assertFalse(audit_trail_path.joinpath('user_parameters.yaml').is_file())
+        self.assertFalse(audit_trail_path.joinpath('exclusion_file.exclude').is_file())
             
     def test_fake_run_setup(self):       
         fake_run = base_juno_pipeline.RunSnakemake(pipeline_name='fake_pipeline',
                                                     pipeline_version='0.1',
                                                     output_dir='fake_output_dir',
                                                     workdir=main_script_path,
+                                                    exclusion_file='exclusion_file.exclude',
                                                     sample_sheet='sample_sheet.yaml',
                                                     user_parameters='user_parameters.yaml',
                                                     fixed_parameters='fixed_parameters.yaml')
@@ -418,6 +422,7 @@ class TestRunSnakemake(unittest.TestCase):
         self.assertTrue(audit_trail_path.joinpath('log_pipeline.yaml').is_file())
         self.assertTrue(audit_trail_path.joinpath('sample_sheet.yaml').is_file())
         self.assertTrue(audit_trail_path.joinpath('user_parameters.yaml').is_file())
+        #self.assertTrue(audit_trail_path.joinpath('exclusion_file.exclude').is_file())
 
         pipeline_name_in_audit_trail = False
         pipeline_version_in_audit_trail = False
@@ -450,6 +455,7 @@ class TestRunSnakemake(unittest.TestCase):
                                                     pipeline_version='0.1',
                                                     output_dir='fake_output_dir',
                                                     workdir=main_script_path,
+                                                    exclusion_file='exclusion_file.exclude',
                                                     sample_sheet='sample_sheet.yaml',
                                                     user_parameters='user_parameters.yaml',
                                                     fixed_parameters='fixed_parameters.yaml',
@@ -473,6 +479,7 @@ class TestRunSnakemake(unittest.TestCase):
             pipeline_version='0.1',
             output_dir=output_dir,
             workdir=main_script_path,
+            exclusion_file='exclusion_file.exclude',
             sample_sheet='sample_sheet.yaml',
             user_parameters='user_parameters.yaml',
             fixed_parameters='fixed_parameters.yaml',
