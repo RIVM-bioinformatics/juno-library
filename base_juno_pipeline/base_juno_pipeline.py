@@ -259,7 +259,7 @@ class RunSnakemake(helper_functions.JunoHelpers):
                 pipeline_version,
                 output_dir,
                 workdir,
-                exclusion_file,
+                exclusion_file=None,
                 sample_sheet=pathlib.Path('config/sample_sheet.yaml'), 
                 user_parameters=pathlib.Path('config/user_parameters.yaml'), 
                 fixed_parameters=pathlib.Path('config/pipeline_parameters.yaml'),
