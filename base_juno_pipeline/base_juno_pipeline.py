@@ -309,15 +309,12 @@ class RunSnakemake(helper_functions.JunoHelpers):
         self.kwargs = kwargs
 
         if exclusion_file is None:
-            print("exclude is none, rip")
-            print(self.output_dir)
-            # with open(self.user_parameters, "w") as fml:
-            #     yikes = fml.readlines()
-            #    print("gggggggggggg", yik#es)
+            print("exclude is none")
             self.exclusion_file = None
         else:
+            print("found exclude file")
             self.exclusion_file = pathlib.Path(exclusion_file)
-            print("hoi")
+            print("exclude file = ", self.exclusion_file)
     
     def get_run_info(self):
         '''
@@ -332,9 +329,8 @@ class RunSnakemake(helper_functions.JunoHelpers):
         '''
         Make a copy of the exclude file.
         '''
-        print("meep", self.exclusion_file)
+        print("exclude file: ", self.exclusion_file)
         if self.exclusion_file is not None:
-            #exclude_file_path = pathlib.Path(self.exclusion_file)
             print("Make copy of exclude file")
             shutil.copy(self.exclusion_file, self.path_to_audit) 
 
