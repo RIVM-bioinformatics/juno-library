@@ -3,7 +3,7 @@ import pathlib
 import sys
 
 import juno_info
-import base_juno_pipeline
+import juno_library
 
 
 def get_args():

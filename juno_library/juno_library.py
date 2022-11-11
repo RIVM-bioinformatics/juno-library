@@ -5,7 +5,7 @@ bioinformatics group at the RIVM. All our pipelines use Snakemake.
 '''
 
 import shutil
-from base_juno_pipeline import helper_functions
+from juno_library import helper_functions
 from datetime import datetime
 from pandas import read_csv
 import pathlib

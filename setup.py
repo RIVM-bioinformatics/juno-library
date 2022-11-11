@@ -1,6 +1,6 @@
 from __future__ import print_function
 
-from base_juno_pipeline import juno_info
+from juno_library import juno_info
 import sys
 
 if sys.version_info < (3, 7): 
@@ -25,18 +25,20 @@ setup(
     description=juno_info.__description__,
     zip_safe=False,
     license=juno_info.__license__,
-    packages=find_packages(include=['base_juno_pipeline', 'base_juno_pipeline.*']),
-    scripts=['base_juno_pipeline/base_juno_pipeline.py'],
-    package_data={'base_juno_pipeline': ['envs/*']},
+    packages=find_packages(include=['juno_library', 'juno_library.*']),
+    scripts=['juno_library/juno_library.py'],
+    package_data={'juno_library': ['envs/*']},
     install_requires=[
-        'dask',
-        'mamba',
-        'numpy',
-        'pandas',
-        'pip>=19.2.0',
-        'snakemake>=6.1.0',
+        'pandas>=1.5',
+        'drmaa>=0.7.9',
+        'snakemake>=7.18',
+        'xlrd>=2.0',
         'unittest2',
-        'xlrd==1.2.0',
+        'pip>=22.3',
+        'pyyaml>=6.0',
+        'numpy>=1.23',
+        'dask',
+        'unittest2',
         'pyyaml'
     ],
     # entry_points={

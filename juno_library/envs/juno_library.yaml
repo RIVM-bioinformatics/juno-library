@@ -1,0 +1,19 @@
+name: juno_library
+channels:
+  - bioconda
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10.*
+  - pandas=1.5
+  - drmaa==0.7.9
+  - snakemake=7.18.*
+  - xlrd=2.0.*
+  - unittest2
+  - pip=22.3.*
+  - pyyaml=6.0
+  - numpy=1.23.*
+  - dask
+  - git
+  pip:
+    - unittest2
