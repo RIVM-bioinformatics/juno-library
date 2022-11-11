@@ -15,7 +15,7 @@ try:
     from setuptools import setup, find_packages
 except ImportError:
     print(
-        "Please install setuptools before installing the base_juno_pipeline library.\n",
+        "Please install setuptools before installing juno_library.\n",
         file=sys.stderr,
     )
     exit(1)
@@ -45,10 +45,10 @@ setup(
         "unittest2",
         "pyyaml",
     ],
-    # entry_points={
-    #     "console_scripts": [
-    #         "juno_pipeline = base_juno_pipeline:main"
-    #     ]
-    # },
+    entry_points={
+        "console_scripts": [
+            "juno_pipeline = juno_library:main"
+        ]
+    },
     include_package_data=True,
 )

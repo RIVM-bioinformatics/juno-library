@@ -99,7 +99,7 @@ class TestTextJunoHelpers(unittest.TestCase):
         JunoHelpers = helper_functions.JunoHelpers()
         url = JunoHelpers.get_repo_url(main_script_path)
         url_is_correct = (
-            url == "https://github.com/RIVM-bioinformatics/base_juno_pipeline.git"
+            url == "https://github.com/RIVM-bioinformatics/juno-library.git"
         )
         self.assertTrue(url_is_correct)
 
@@ -584,7 +584,7 @@ class TestRunSnakemake(unittest.TestCase):
             ) as git_audit_trail_file:
                 for line in git_audit_trail_file:
                     if (
-                        "https://github.com/RIVM-bioinformatics/base_juno_pipeline.git"
+                        "https://github.com/RIVM-bioinformatics/juno-library.git"
                         in line
                     ):
                         repo_url_in_audit_trail = True
