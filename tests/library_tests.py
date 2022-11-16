@@ -23,15 +23,11 @@ class TestTextJunoHelpers(unittest.TestCase):
 
     def test_error_formatter(self):
         """Testing that the error formatter does add the color codes to the text"""
-        self.assertEqual(
-            error_formatter("message"), "\033[0;31mmessage\n\033[0;0m"
-        )
+        self.assertEqual(error_formatter("message"), "\033[0;31mmessage\n\033[0;0m")
 
     def test_message_formatter(self):
         """Testing that the message formatter does add the color codes to the text"""
-        self.assertEqual(
-            message_formatter("message"), "\033[0;33mmessage\n\033[0;0m"
-        )
+        self.assertEqual(message_formatter("message"), "\033[0;33mmessage\n\033[0;0m")
 
 
 class TestFileJunoHelpers(unittest.TestCase):
@@ -51,9 +47,7 @@ class TestFileJunoHelpers(unittest.TestCase):
         and False if empty file and a min_num_lines of at least 1"""
         empty_file = "empty.txt"
         open(empty_file, "a").close()
-        self.assertFalse(
-            validate_file_has_min_lines(empty_file, min_num_lines=1)
-        )
+        self.assertFalse(validate_file_has_min_lines(empty_file, min_num_lines=1))
         os.system(f"rm -f {empty_file}")
 
     def test_validate_is_nonempty_when_gzipped(self):
@@ -92,7 +86,9 @@ class TestTextJunoHelpers(unittest.TestCase):
             )
 
         url = get_repo_url(main_script_path)
-        self.assertTrue(url == "https://github.com/RIVM-bioinformatics/juno-library.git")
+        self.assertTrue(
+            url == "https://github.com/RIVM-bioinformatics/juno-library.git"
+        )
 
     def test_fail_when_dir_not_repo(self):
         """Testing that the url is 'not available' when the directory is not

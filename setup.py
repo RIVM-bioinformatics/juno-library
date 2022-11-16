@@ -45,10 +45,6 @@ setup(
         "unittest2",
         "pyyaml",
     ],
-    entry_points={
-        "console_scripts": [
-            "juno_pipeline = juno_library:main"
-        ]
-    },
+    entry_points={"console_scripts": ["juno_pipeline = juno_library:main"]},
     include_package_data=True,
 )
