@@ -5,7 +5,7 @@ bioinformatics group at the RIVM. All our pipelines use Snakemake.
 """
 
 import shutil
-from juno_library import helper_functions
+from juno_library.helper_functions import *
 from datetime import datetime
 from pandas import read_csv
 import pathlib
@@ -16,7 +16,7 @@ from uuid import uuid4
 import yaml
 
 
-class PipelineStartup(helper_functions.JunoHelpers):
+class PipelineStartup:
     """
     Class to perform actions that need to be done before running a pipeline.
     For instance: check that input directory exists and has the expected input
@@ -121,7 +121,7 @@ class PipelineStartup(helper_functions.JunoHelpers):
                     return True
                     break
         raise ValueError(
-            self.error_formatter(
+            error_formatter(
                 f"Input directory ({self.input_dir}) does not contain files that end with one of the expected extensions {extension}."
             )
         )
@@ -160,7 +160,7 @@ class PipelineStartup(helper_functions.JunoHelpers):
         )
         samples = {}
         for file_ in self.__subdirs_["fastq"].iterdir():
-            if self.validate_file_has_min_lines(file_, self.min_num_lines):
+            if validate_file_has_min_lines(file_, self.min_num_lines):
                 match = pattern.fullmatch(file_.name)
                 if match:
                     sample = samples.setdefault(match.group(1), {})
@@ -176,7 +176,7 @@ class PipelineStartup(helper_functions.JunoHelpers):
         pattern = re.compile("(.*?).fasta")
         samples = {}
         for file_ in self.__subdirs_["fasta"].iterdir():
-            if self.validate_file_has_min_lines(file_, self.min_num_lines):
+            if validate_file_has_min_lines(file_, self.min_num_lines):
                 match = pattern.fullmatch(file_.name)
                 if match:
                     sample = samples.setdefault(match.group(1), {})
@@ -224,7 +224,7 @@ class PipelineStartup(helper_functions.JunoHelpers):
     def validate_sample_dict(self):
         if not self.sample_dict:
             raise ValueError(
-                self.error_formatter(
+                error_formatter(
                     f"The input directory ({self.input_dir}) does not contain any files with the expected format/naming. Also check that your files have an expected size (min. number of lines expected: {self.min_num_lines})"
                 )
             )
@@ -234,7 +234,7 @@ class PipelineStartup(helper_functions.JunoHelpers):
                 R2_present = "R2" in self.sample_dict[sample].keys()
                 if not R1_present or not R2_present:
                     raise KeyError(
-                        self.error_formatter(
+                        error_formatter(
                             f"One of the paired fastq files (R1 or R2) are missing for sample {sample}. This pipeline ONLY ACCEPTS PAIRED READS. If you are sure you have complete paired-end reads, make sure to NOT USE _1 and _2 within your file names unless it is to differentiate paired fastq files or any unsupported character (Supported: letters, numbers, underscores)."
                         )
                     )
@@ -243,7 +243,7 @@ class PipelineStartup(helper_functions.JunoHelpers):
                 assembly_present = self.sample_dict[sample].keys()
                 if "assembly" not in assembly_present:
                     raise KeyError(
-                        self.error_formatter(
+                        error_formatter(
                             f"The assembly is mising for sample {sample}. This pipeline expects an assembly per sample."
                         )
                     )
@@ -269,7 +269,7 @@ class PipelineStartup(helper_functions.JunoHelpers):
             juno_metadata = read_csv(juno_species_file, dtype={"sample": str})
             assert all(
                 [col in juno_metadata.columns for col in expected_colnames]
-            ), self.error_formatter(
+            ), error_formatter(
                 f'The provided metadata file ({filepath}) does not contain one or more of the expected column names ({",".join(expected_colnames)}). Are you using the right capitalization for the column names?'
             )
             juno_metadata.set_index("sample", inplace=True)
@@ -278,7 +278,7 @@ class PipelineStartup(helper_functions.JunoHelpers):
             self.juno_metadata = None
 
 
-class RunSnakemake(helper_functions.JunoHelpers):
+class RunSnakemake:
     """
     Class with necessary input to actually run Snakemake. It is basically a
     wrapper for the snakemake function (of the snakemake package) but with some
@@ -373,18 +373,18 @@ class RunSnakemake(helper_functions.JunoHelpers):
         through git)
         """
         print(
-            self.message_formatter(
+            message_formatter(
                 f"Collecting information about the Git repository of this pipeline (see {str(git_file)})"
             )
         )
-        git_audit = {"repo": self.get_repo_url("."), "commit": self.get_commit_git(".")}
+        git_audit = {"repo": get_repo_url("."), "commit": get_commit_git(".")}
         with open(git_file, "w") as file:
             yaml.dump(git_audit, file, default_flow_style=False)
 
     def get_pipeline_audit(self, pipeline_file):
         """Get the pipeline_info and print it to a file for audit trail"""
         print(
-            self.message_formatter(
+            message_formatter(
                 f"Collecting information about the pipeline (see {str(pipeline_file)})"
             )
         )
@@ -404,7 +404,7 @@ class RunSnakemake(helper_functions.JunoHelpers):
         Get list of environments in current conda environment
         """
         print(
-            self.message_formatter(
+            message_formatter(
                 "Getting information of the master environment used for this pipeline."
             )
         )
@@ -462,7 +462,7 @@ class RunSnakemake(helper_functions.JunoHelpers):
         cluster. The commands are for now set to use bsub so it will not work
         with other types of clusters but it is on the to-do list to do it.
         """
-        print(self.message_formatter(f"Running {self.pipeline_name} pipeline."))
+        print(message_formatter(f"Running {self.pipeline_name} pipeline."))
 
         # Generate pipeline audit trail only if not dryrun (or unlock)
         # store the exclusion file in the audit_trail as well
@@ -472,10 +472,10 @@ class RunSnakemake(helper_functions.JunoHelpers):
             self.exclusion_file = self.copy_exclusion_file()
 
         if self.local:
-            print(self.message_formatter("Jobs will run locally"))
+            print(message_formatter("Jobs will run locally"))
             cluster = None
         else:
-            print(self.message_formatter("Jobs will be sent to the cluster"))
+            print(message_formatter("Jobs will be sent to the cluster"))
             cluster_log_dir = pathlib.Path(str(self.output_dir)).joinpath(
                 "log", "cluster"
             )
@@ -521,12 +521,10 @@ class RunSnakemake(helper_functions.JunoHelpers):
             dryrun=self.dryrun,
             **self.kwargs,
         )
-        assert pipeline_run_successful, self.error_formatter(
+        assert pipeline_run_successful, error_formatter(
             f"An error occured while running the {self.pipeline_name} pipeline."
         )
-        print(
-            self.message_formatter(f"Finished running {self.pipeline_name} pipeline!")
-        )
+        print(message_formatter(f"Finished running {self.pipeline_name} pipeline!"))
         return pipeline_run_successful
 
     def make_snakemake_report(self):
@@ -535,7 +533,7 @@ class RunSnakemake(helper_functions.JunoHelpers):
         that it expects that the output files were already produced by the
         run_snakemake function
         """
-        print(self.message_formatter(f"Generating snakemake report for audit trail..."))
+        print(message_formatter(f"Generating snakemake report for audit trail..."))
         # The copy of the sample sheet that was generated for audit trail is
         # used instead of the original sample sheet. This is to avoid that if
         # a new run is started while there is one running, the correct sample

@@ -10,7 +10,7 @@ main_script_path = str(
 )
 path.insert(0, main_script_path)
 from juno_library import juno_library
-from juno_library import helper_functions
+from juno_library.helper_functions import *
 
 
 def make_non_empty_file(file_path, content="this\nfile\nhas\ncontents"):
@@ -23,16 +23,14 @@ class TestTextJunoHelpers(unittest.TestCase):
 
     def test_error_formatter(self):
         """Testing that the error formatter does add the color codes to the text"""
-        JunoHelpers = helper_functions.JunoHelpers()
         self.assertEqual(
-            JunoHelpers.error_formatter("message"), "\033[0;31mmessage\n\033[0;0m"
+            error_formatter("message"), "\033[0;31mmessage\n\033[0;0m"
         )
 
     def test_message_formatter(self):
         """Testing that the message formatter does add the color codes to the text"""
-        JunoHelpers = helper_functions.JunoHelpers()
         self.assertEqual(
-            JunoHelpers.message_formatter("message"), "\033[0;33mmessage\n\033[0;0m"
+            message_formatter("message"), "\033[0;33mmessage\n\033[0;0m"
         )
 
 
@@ -42,21 +40,19 @@ class TestFileJunoHelpers(unittest.TestCase):
     def test_validate_file_has_min_lines(self):
         """Testing that the function to check whether a file is empty works.
         It should return True if nonempty file"""
-        JunoHelpers = helper_functions.JunoHelpers()
         nonempty_file = "nonempty.txt"
         make_non_empty_file(nonempty_file)
-        self.assertTrue(JunoHelpers.validate_file_has_min_lines(nonempty_file))
+        self.assertTrue(validate_file_has_min_lines(nonempty_file))
         os.system(f"rm -f {nonempty_file}")
 
     def test_validate_file_has_min_lines(self):
         """Testing that the function to check whether a file is empty works.
         It should return True if file is empty but no min_num_lines is given
         and False if empty file and a min_num_lines of at least 1"""
-        JunoHelpers = helper_functions.JunoHelpers()
         empty_file = "empty.txt"
         open(empty_file, "a").close()
         self.assertFalse(
-            JunoHelpers.validate_file_has_min_lines(empty_file, min_num_lines=1)
+            validate_file_has_min_lines(empty_file, min_num_lines=1)
         )
         os.system(f"rm -f {empty_file}")
 
@@ -64,13 +60,12 @@ class TestFileJunoHelpers(unittest.TestCase):
         """Testing that the function to check whether a gzipped file is empty
         works. It should return True if file is empty but no min_num_lines is
         given and False if empty file and a min_num_lines of at least 1"""
-        JunoHelpers = helper_functions.JunoHelpers()
         empty_file = "empty.txt"
         open(empty_file, "a").close()
         os.system(f"gzip -f {empty_file}")
-        self.assertTrue(JunoHelpers.validate_file_has_min_lines(f"{empty_file}.gz"))
+        self.assertTrue(validate_file_has_min_lines(f"{empty_file}.gz"))
         self.assertFalse(
-            JunoHelpers.validate_file_has_min_lines(f"{empty_file}.gz", min_num_lines=3)
+            validate_file_has_min_lines(f"{empty_file}.gz", min_num_lines=3)
         )
         os.system(f"rm -f {empty_file}")
         os.system(f"rm -f {empty_file}.gz")
@@ -96,20 +91,15 @@ class TestTextJunoHelpers(unittest.TestCase):
                 "The directory containint this package is not a git repo, therefore test was skipped"
             )
 
-        JunoHelpers = helper_functions.JunoHelpers()
-        url = JunoHelpers.get_repo_url(main_script_path)
-        url_is_correct = (
-            url == "https://github.com/RIVM-bioinformatics/juno-library.git"
-        )
-        self.assertTrue(url_is_correct)
+        url = get_repo_url(main_script_path)
+        self.assertTrue(url == "https://github.com/RIVM-bioinformatics/juno-library.git")
 
     def test_fail_when_dir_not_repo(self):
         """Testing that the url is 'not available' when the directory is not
         a git repo
         """
-        JunoHelpers = helper_functions.JunoHelpers()
         self.assertEqual(
-            JunoHelpers.get_repo_url(os.path.expanduser("~")),
+            get_repo_url(os.path.expanduser("~")),
             "Not available. This might be because this folder is not a repository or it was downloaded manually instead of through the command line.",
         )
 
@@ -127,20 +117,18 @@ class TestTextJunoHelpers(unittest.TestCase):
             self.skipTest(
                 "The directory containint this package is not a git repo, therefore test was skipped"
             )
-        JunoHelpers = helper_functions.JunoHelpers()
         commit_available = (
-            JunoHelpers.get_commit_git(main_script_path)
+            get_commit_git(main_script_path)
             == "Not available. This might be because this folder is not a repository or it was downloaded manually instead of through the command line."
         )
-        self.assertIsInstance(JunoHelpers.get_commit_git(main_script_path), str)
+        self.assertIsInstance(get_commit_git(main_script_path), str)
         self.assertFalse(commit_available)
 
     def test_get_commit_git_from_non_git_repo(self):
         """Testing that the git commit function gives right output when no git repo"""
-        JunoHelpers = helper_functions.JunoHelpers()
-        self.assertIsInstance(JunoHelpers.get_commit_git(os.path.expanduser("~")), str)
+        self.assertIsInstance(get_commit_git(os.path.expanduser("~")), str)
         self.assertEqual(
-            JunoHelpers.get_commit_git(os.path.expanduser("~")),
+            get_commit_git(os.path.expanduser("~")),
             "Not available. This might be because this folder is not a repository or it was downloaded manually instead of through the command line.",
         )
 
@@ -657,7 +645,7 @@ class TestKwargsClass(unittest.TestCase):
             "--snakemake-args",
             nargs="*",
             default={},
-            action=helper_functions.SnakemakeKwargsAction,
+            action=SnakemakeKwargsAction,
             help="Extra arguments to be passed to snakemake API (https://snakemake.readthedocs.io/en/stable/api_reference/snakemake.html).",
         )
         args = parser.parse_args(["--snakemake-args", "key1=value1", "key2=value2"])
