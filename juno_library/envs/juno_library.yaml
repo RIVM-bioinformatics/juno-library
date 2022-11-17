@@ -15,5 +15,5 @@ dependencies:
   - numpy=1.23.*
   - dask
   - git
-  pip:
+  - pip:
     - unittest2
