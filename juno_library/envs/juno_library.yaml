@@ -9,11 +9,8 @@ dependencies:
   - drmaa==0.7.9
   - snakemake=7.18.*
   - xlrd=2.0.*
-  - unittest2
   - pip=22.3.*
   - pyyaml=6.0
   - numpy=1.23.*
-  - dask
-  - git
-  - pip:
-    - unittest2
+  - dask=2022.11.0
+  - git=2.38.*
