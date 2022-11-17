@@ -1,6 +1,7 @@
 import argparse
 import os
 import pathlib
+from pathlib import Path
 from sys import path
 import subprocess
 import unittest
@@ -191,7 +192,7 @@ class TestPipelineStartup(unittest.TestCase):
             if fake_file == "exclusion_file.exclude":
                 make_non_empty_file(fake_file, content="sample1")
 
-    def tearDownClass(slef):
+    def tearDownClass(self):
         """Removing fake directories/files"""
 
         fake_dirs = [
@@ -497,9 +498,9 @@ class TestRunSnakemake(unittest.TestCase):
         fake_run = juno_library.RunSnakemake(
             pipeline_name="fake_pipeline",
             pipeline_version="0.1",
-            output_dir="fake_output_dir",
-            workdir=main_script_path,
-            exclusion_file="exclusion_file.exclude",
+            output_dir=Path("fake_output_dir"),
+            workdir=Path(main_script_path),
+            exclusion_file=Path("exclusion_file.exclude"),
             sample_sheet=pathlib.Path("sample_sheet.yaml"),
             user_parameters=pathlib.Path("user_parameters.yaml"),
             fixed_parameters=pathlib.Path("fixed_parameters.yaml"),
@@ -522,9 +523,9 @@ class TestRunSnakemake(unittest.TestCase):
         fake_run = juno_library.RunSnakemake(
             pipeline_name="fake_pipeline",
             pipeline_version="0.1",
-            output_dir="fake_output_dir",
-            workdir=main_script_path,
-            exclusion_file="exclusion_file.exclude",
+            output_dir=Path("fake_output_dir"),
+            workdir=Path(main_script_path),
+            exclusion_file=Path("exclusion_file.exclude"),
             sample_sheet=pathlib.Path("sample_sheet.yaml"),
             user_parameters=pathlib.Path("user_parameters.yaml"),
             fixed_parameters=pathlib.Path("fixed_parameters.yaml"),
@@ -580,9 +581,9 @@ class TestRunSnakemake(unittest.TestCase):
         fake_run = juno_library.RunSnakemake(
             pipeline_name="fake_pipeline",
             pipeline_version="0.1",
-            output_dir="fake_output_dir",
-            workdir=main_script_path,
-            exclusion_file="exclusion_file.exclude",
+            output_dir=Path("fake_output_dir"),
+            workdir=Path(main_script_path),
+            exclusion_file=Path("exclusion_file.exclude"),
             sample_sheet=pathlib.Path("sample_sheet.yaml"),
             user_parameters=pathlib.Path("user_parameters.yaml"),
             fixed_parameters=pathlib.Path("fixed_parameters.yaml"),
@@ -611,11 +612,11 @@ class TestRunSnakemake(unittest.TestCase):
             pipeline_name="fake_pipeline",
             pipeline_version="0.1",
             output_dir=output_dir,
-            workdir=main_script_path,
-            exclusion_file="exclusion_file.exclude",
-            sample_sheet=pathlib.Path("sample_sheet.yaml"),
-            user_parameters=pathlib.Path("user_parameters.yaml"),
-            fixed_parameters=pathlib.Path("fixed_parameters.yaml"),
+            workdir=Path(main_script_path),
+            exclusion_file=Path("exclusion_file.exclude"),
+            sample_sheet=Path("sample_sheet.yaml"),
+            user_parameters=Path("user_parameters.yaml"),
+            fixed_parameters=Path("fixed_parameters.yaml"),
             snakefile="tests/Snakefile",
             name_snakemake_report="fake_snakemake_report.html",
             local=False,

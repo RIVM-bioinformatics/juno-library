@@ -9,11 +9,13 @@ from helper_functions import *
 from datetime import datetime
 from pandas import read_csv
 import pathlib
+from pathlib import Path
 import re
 from snakemake import snakemake
 import subprocess
 from uuid import uuid4
 import yaml
+from dataclasses import dataclass
 
 
 class PipelineStartup:
@@ -156,7 +158,7 @@ class PipelineStartup:
         # because they get confused with the identifiers of forward and reverse
         # reads.
         pattern = re.compile(
-            "(.*?)(?:_S\d+_|_S\d+.|_|\.)(?:_L555_)?(?:p)?R?(1|2)(?:_.*\.|\..*\.|\.)f(ast)?q(\.gz)?"
+            r"(.*?)(?:_S\d+_|_S\d+.|_|\.)(?:_L555_)?(?:p)?R?(1|2)(?:_.*\.|\..*\.|\.)f(ast)?q(\.gz)?"
         )
         samples = {}
         for file_ in self.__subdirs_["fastq"].iterdir():
@@ -279,6 +281,7 @@ class PipelineStartup:
             self.juno_metadata = juno_metadata.to_dict(orient="index")
 
 
+@dataclass
 class RunSnakemake:
     """
     Class with necessary input to actually run Snakemake. It is basically a
@@ -286,68 +289,47 @@ class RunSnakemake:
     customization that is used in all our Juno pipelines
     """
 
-    def __init__(
-        self,
-        pipeline_name,
-        pipeline_version,
-        output_dir,
-        workdir,
-        exclusion_file=None,
-        sample_sheet=pathlib.Path("config/sample_sheet.yaml"),
-        user_parameters=pathlib.Path("config/user_parameters.yaml"),
-        fixed_parameters=pathlib.Path("config/pipeline_parameters.yaml"),
-        snakefile="Snakefile",
-        cores=300,
-        local=False,
-        queue="bio",
-        unlock=False,
-        rerunincomplete=True,
-        dryrun=False,
-        useconda=True,
-        conda_prefix=None,
-        usesingularity=True,
-        singularityargs="",
-        singularity_prefix=None,
-        restarttimes=0,
-        latency_wait=60,
-        time_limit=60,
-        name_snakemake_report="snakemake_report.html",
-        **kwargs,
-    ):
-        """Constructor"""
-        self.pipeline_name = pipeline_name
-        self.pipeline_version = pipeline_version
-        self.output_dir = pathlib.Path(output_dir)
-        self.workdir = pathlib.Path(workdir)
-        self.sample_sheet = sample_sheet
-        self.user_parameters = user_parameters
-        self.fixed_parameters = fixed_parameters
-        self.snakefile = snakefile
-        self.path_to_audit = self.output_dir.joinpath("audit_trail")
-        self.snakemake_report = str(self.path_to_audit.joinpath(name_snakemake_report))
-        self.cores = cores
-        self.local = local
-        self.queue = queue
-        self.unlock = unlock
-        self.dryrun = dryrun
-        self.rerunincomplete = rerunincomplete
-        self.useconda = useconda
-        self.conda_frontend = "mamba"
-        self.conda_prefix = conda_prefix
-        self.usesingularity = usesingularity
-        self.singularityargs = singularityargs
-        self.singularity_prefix = singularity_prefix
-        self.restarttimes = restarttimes
-        self.latency = latency_wait
-        self.time_limit = time_limit
-        self.kwargs = kwargs
+    pipeline_name: str
+    pipeline_version: str
+    output_dir: Path
+    workdir: Path
+    exclusion_file: None | Path
+    sample_sheet: Path = pathlib.Path("config/sample_sheet.yaml")
+    user_parameters: Path = pathlib.Path("config/user_parameters.yaml")
+    fixed_parameters: Path = pathlib.Path("config/pipeline_parameters.yaml")
+    snakefile: str = "Snakefile"
+    cores: int = 300
+    local: bool = False
+    queue: str = "bio"
+    unlock: bool = False
+    rerunincomplete: bool = True
+    dryrun: bool = False
+    useconda: bool = True
+    conda_prefix: None | str = None
+    usesingularity = True
+    singularityargs = ""
+    singularity_prefix = None
+    restarttimes: int = 0
+    latency_wait: int = 60
+    time_limit: int = 60
+    name_snakemake_report: str = "snakemake_report.html"
+    conda_frontend: str = "mamba"
 
-        if exclusion_file is None:
-            print("exclude is none")
-            self.exclusion_file = None
+    def __post_init__(self, **kwargs):
+        """Constructor"""
+        self.kwargs = kwargs
+        self.path_to_audit = self.output_dir.joinpath("audit_trail")
+        self.output_dir = Path(self.output_dir)
+        self.workdir = Path(self.workdir)
+        self.fixed_parameters = Path(self.fixed_parameters)
+        self.snakemake_report = str(
+            self.path_to_audit.joinpath(self.name_snakemake_report)
+        )
+        if self.exclusion_file is None:
+            print("There is no exclude file")
         else:
             print("found exclude file")
-            self.exclusion_file = pathlib.Path(exclusion_file)
+            self.exclusion_file = pathlib.Path(self.exclusion_file)
             print("exclude file = ", self.exclusion_file)
 
     def get_run_info(self):
@@ -517,7 +499,7 @@ class RunSnakemake:
             printshellcmds=True,
             force_incomplete=self.rerunincomplete,
             restart_times=self.restarttimes,
-            latency_wait=self.latency,
+            latency_wait=self.latency_wait,
             unlock=self.unlock,
             dryrun=self.dryrun,
             **self.kwargs,
