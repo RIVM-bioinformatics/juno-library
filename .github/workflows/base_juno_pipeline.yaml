@@ -32,4 +32,4 @@ jobs:
         run: conda list
       - name: Test base
         shell: bash -l {0}
-        run: python tests/test_juno_library_pipeline.py
+        run: python tests/library_tests.py
