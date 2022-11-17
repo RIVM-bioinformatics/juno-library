@@ -164,14 +164,14 @@ class PipelineStartup:
                     sample[f"R{match.group(2)}"] = str(file_)
         return samples
 
-    def __enlist_fasta_samples(self) -> dict[str,dict[str,str]]:
+    def __enlist_fasta_samples(self) -> dict[str, dict[str, str]]:
         """
         Function to enlist the fasta files found in the input
         directory. Returns a dictionary with the form
         {sample: {assembly: fasta_file}}
         """
         pattern = re.compile("(.*?).fasta")
-        samples: dict[str,dict[str,str]] = {}
+        samples: dict[str, dict[str, str]] = {}
         for file_ in self.__subdirs_["fasta"].iterdir():
             if validate_file_has_min_lines(file_, self.min_num_lines):
                 match = pattern.fullmatch(file_.name)
@@ -180,7 +180,7 @@ class PipelineStartup:
                     sample["assembly"] = str(file_)
         return samples
 
-    def make_sample_dict(self) -> dict[str,dict[str,Path]]:
+    def make_sample_dict(self) -> dict[str, dict[str, str]]:
         """
         Function to make a sample sheet from the input directory (expecting
         either fastq or fasta files as input)
@@ -247,7 +247,9 @@ class PipelineStartup:
                     )
 
     def get_metadata_from_csv_file(
-        self, filepath: Path | None = None, expected_colnames : list[str]=["sample", "genus"]
+        self,
+        filepath: Path | None = None,
+        expected_colnames: list[str] = ["sample", "genus"],
     ):
         """
         Function to get a dictionary with the sample, genus and species per
