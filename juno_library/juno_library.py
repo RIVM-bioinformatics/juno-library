@@ -201,14 +201,11 @@ class PipelineStartup:
         """Function to exclude low quality samples that are specified by the user in a .txt file, given in the argument
         parser with the option -ex or --exclude. Returns a sample dict as made in the function make_sample_dict"""
         if self.exclusion_file:
-            print("Exclude file path: ", self.exclusion_file)
-            print("Exclude file name: ", self.exclusion_file.name)
             if self.exclusion_file.is_file() and str(self.exclusion_file).endswith(
                 ".exclude"
             ):
                 with open(self.exclusion_file, "r") as exclude_file_open:
                     exclude_samples = exclude_file_open.readlines()
-                    print("samples to exclude: ", exclude_samples)
                     exclude_samples_stripped = [
                         x.replace("\n", "") for x in exclude_samples
                     ]
@@ -217,6 +214,8 @@ class PipelineStartup:
                         for sample in self.sample_dict
                         if sample not in exclude_samples_stripped
                     }
+            else:
+                print(error_formatter(f"Exclusion file:\n\t{self.exclusion_file}\ndoes not exist or does not end with '.exclude'. It is ignored."))
 
     def validate_sample_dict(self) -> bool:
         if not self.sample_dict:
