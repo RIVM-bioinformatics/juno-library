@@ -41,7 +41,7 @@ class TestFileJunoHelpers(unittest.TestCase):
         self.assertTrue(validate_file_has_min_lines(nonempty_file))
         os.system(f"rm -f {nonempty_file}")
 
-    def test_validate_file_has_min_lines(self):
+    def test_validate_file_has_min_lines_2(self):
         """Testing that the function to check whether a file is empty works.
         It should return True if file is empty but no min_num_lines is given
         and False if empty file and a min_num_lines of at least 1"""
@@ -65,7 +65,7 @@ class TestFileJunoHelpers(unittest.TestCase):
         os.system(f"rm -f {empty_file}.gz")
 
 
-class TestTextJunoHelpers(unittest.TestCase):
+class TestJunoHelpers(unittest.TestCase):
     """Testing Helper Functions"""
 
     @unittest.skipIf(
@@ -133,7 +133,7 @@ class TestPipelineStartup(unittest.TestCase):
     """Testing the pipeline startup (generating dict with samples) from general
     Juno pipelines"""
 
-    def setUpClass():
+    def setUpClass(self):
         """Making fake directories and files to test different case scenarios
         for starting pipeline"""
         fake_dirs = [
@@ -191,7 +191,7 @@ class TestPipelineStartup(unittest.TestCase):
             if fake_file == "exclusion_file.exclude":
                 make_non_empty_file(fake_file, content="sample1")
 
-    def tearDownClass():
+    def tearDownClass(slef):
         """Removing fake directories/files"""
 
         fake_dirs = [
@@ -474,7 +474,7 @@ class TestRunSnakemake(unittest.TestCase):
     """Testing the RunSnakemake class. At least testing that it is constructed
     properly (not testing the run itself)"""
 
-    def setUpClass():
+    def setUpClass(self):
         with open("user_parameters.yaml", "a") as file_:
             file_.write("fake_parameter: null")
         with open("fixed_parameters.yaml", "a") as file_:
@@ -486,7 +486,7 @@ class TestRunSnakemake(unittest.TestCase):
         pathlib.Path("fake_input/sample_b.fasta").touch()
         pathlib.Path("fake_input/sample_c.fasta").touch()
 
-    def tearDownClass():
+    def tearDownClass(self):
         os.system("rm sample_sheet.yaml user_parameters.yaml fixed_parameters.yaml")
         os.system("rm -rf fake_output_dir")
         os.system("rm -rf fake_hpcoutput_dir")
@@ -500,9 +500,9 @@ class TestRunSnakemake(unittest.TestCase):
             output_dir="fake_output_dir",
             workdir=main_script_path,
             exclusion_file="exclusion_file.exclude",
-            sample_sheet="sample_sheet.yaml",
-            user_parameters="user_parameters.yaml",
-            fixed_parameters="fixed_parameters.yaml",
+            sample_sheet=pathlib.Path("sample_sheet.yaml"),
+            user_parameters=pathlib.Path("user_parameters.yaml"),
+            fixed_parameters=pathlib.Path("fixed_parameters.yaml"),
             dryrun=True,
         )
         fake_run.get_run_info()
@@ -525,9 +525,9 @@ class TestRunSnakemake(unittest.TestCase):
             output_dir="fake_output_dir",
             workdir=main_script_path,
             exclusion_file="exclusion_file.exclude",
-            sample_sheet="sample_sheet.yaml",
-            user_parameters="user_parameters.yaml",
-            fixed_parameters="fixed_parameters.yaml",
+            sample_sheet=pathlib.Path("sample_sheet.yaml"),
+            user_parameters=pathlib.Path("user_parameters.yaml"),
+            fixed_parameters=pathlib.Path("fixed_parameters.yaml"),
         )
         audit_trail_path = pathlib.Path("fake_output_dir", "audit_trail")
         audit_trail_path.mkdir(parents=True, exist_ok=True)
@@ -583,9 +583,9 @@ class TestRunSnakemake(unittest.TestCase):
             output_dir="fake_output_dir",
             workdir=main_script_path,
             exclusion_file="exclusion_file.exclude",
-            sample_sheet="sample_sheet.yaml",
-            user_parameters="user_parameters.yaml",
-            fixed_parameters="fixed_parameters.yaml",
+            sample_sheet=pathlib.Path("sample_sheet.yaml"),
+            user_parameters=pathlib.Path("user_parameters.yaml"),
+            fixed_parameters=pathlib.Path("fixed_parameters.yaml"),
             snakefile="tests/Snakefile",
             name_snakemake_report="fake_snakemake_report.html",
             local=True,
@@ -613,9 +613,9 @@ class TestRunSnakemake(unittest.TestCase):
             output_dir=output_dir,
             workdir=main_script_path,
             exclusion_file="exclusion_file.exclude",
-            sample_sheet="sample_sheet.yaml",
-            user_parameters="user_parameters.yaml",
-            fixed_parameters="fixed_parameters.yaml",
+            sample_sheet=pathlib.Path("sample_sheet.yaml"),
+            user_parameters=pathlib.Path("user_parameters.yaml"),
+            fixed_parameters=pathlib.Path("fixed_parameters.yaml"),
             snakefile="tests/Snakefile",
             name_snakemake_report="fake_snakemake_report.html",
             local=False,

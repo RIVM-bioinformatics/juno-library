@@ -5,7 +5,7 @@ bioinformatics group at the RIVM. All our pipelines use Snakemake.
 """
 
 import shutil
-from juno_library.helper_functions import *
+from helper_functions import *
 from datetime import datetime
 from pandas import read_csv
 import pathlib
@@ -203,23 +203,26 @@ class PipelineStartup:
     def __exclude_samples(self):
         """Function to exclude low quality samples that are specified by the user in a .txt file, given in the argument
         parser with the option -ex or --exclude. Returns a sample dict as made in the function make_sample_dict"""
-        exclude_file_path = pathlib.Path(self.exclusion_file)
-        exclude_file_name = exclude_file_path.name
-        print("Exclude file path: ", exclude_file_path)
-        print("Exclude file name: ", exclude_file_name)
-        if exclude_file_path.is_file() and str(exclude_file_path).endswith(".exclude"):
-            with open(exclude_file_path, "r") as exclude_file_open:
-                exclude_samples = exclude_file_open.readlines()
-                print("samples to exclude: ", exclude_samples)
-                exclude_samples_stripped = [
-                    x.replace("\n", "") for x in exclude_samples
-                ]
-                self.sample_dict = {
-                    sample: self.sample_dict[sample]
-                    for sample in self.sample_dict
-                    if sample not in exclude_samples_stripped
-                }
-        return self.sample_dict
+        if self.exclusion_file:
+            exclude_file_path = pathlib.Path(self.exclusion_file)
+            exclude_file_name = exclude_file_path.name
+            print("Exclude file path: ", exclude_file_path)
+            print("Exclude file name: ", exclude_file_name)
+            if exclude_file_path.is_file() and str(exclude_file_path).endswith(
+                ".exclude"
+            ):
+                with open(exclude_file_path, "r") as exclude_file_open:
+                    exclude_samples = exclude_file_open.readlines()
+                    print("samples to exclude: ", exclude_samples)
+                    exclude_samples_stripped = [
+                        x.replace("\n", "") for x in exclude_samples
+                    ]
+                    self.sample_dict = {
+                        sample: self.sample_dict[sample]
+                        for sample in self.sample_dict
+                        if sample not in exclude_samples_stripped
+                    }
+            return self.sample_dict
 
     def validate_sample_dict(self):
         if not self.sample_dict:
@@ -274,8 +277,6 @@ class PipelineStartup:
             )
             juno_metadata.set_index("sample", inplace=True)
             self.juno_metadata = juno_metadata.to_dict(orient="index")
-        else:
-            self.juno_metadata = None
 
 
 class RunSnakemake:
