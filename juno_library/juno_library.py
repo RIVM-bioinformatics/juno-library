@@ -71,12 +71,12 @@ class PipelineStartup:
         print("Checking if samples need to be Excluded")
         self.make_sample_dict()
         if self.exclusion_file is not None:
-            print("found exclusion file")
+            print(message_formatter(f"Found exclusion file {self.exclusion_file}"))
             self.__exclude_samples()
-            print("new sample dict without samples that are excluded")
-            print(self.sample_dict)
         print(
-            "Validating that all expected input files per sample are present in the input directory..."
+            message_formatter(
+                "Validating that all expected input files per sample are present in the input directory..."
+            )
         )
         self.validate_sample_dict()
 
@@ -201,9 +201,8 @@ class PipelineStartup:
         """Function to exclude low quality samples that are specified by the user in a .txt file, given in the argument
         parser with the option -ex or --exclude. Returns a sample dict as made in the function make_sample_dict"""
         if self.exclusion_file:
-            exclude_file_name = self.exclusion_file.name
             print("Exclude file path: ", self.exclusion_file)
-            print("Exclude file name: ", exclude_file_name)
+            print("Exclude file name: ", self.exclusion_file.name)
             if self.exclusion_file.is_file() and str(self.exclusion_file).endswith(
                 ".exclude"
             ):
@@ -219,7 +218,7 @@ class PipelineStartup:
                         if sample not in exclude_samples_stripped
                     }
 
-    def validate_sample_dict(self):
+    def validate_sample_dict(self) -> bool:
         if not self.sample_dict:
             raise ValueError(
                 error_formatter(
@@ -245,6 +244,7 @@ class PipelineStartup:
                             f"The assembly is mising for sample {sample}. This pipeline expects an assembly per sample."
                         )
                     )
+        return True
 
     def get_metadata_from_csv_file(
         self,
@@ -309,6 +309,9 @@ class RunSnakemake:
     time_limit: int = 60
     name_snakemake_report: str = "snakemake_report.html"
     conda_frontend: str = "mamba"
+    unique_id = uuid4()
+    date_and_time = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
+    hostname = str(subprocess.check_output(["hostname"]).strip())
 
     def __post_init__(self, **kwargs):
         """Constructor"""
@@ -320,32 +323,15 @@ class RunSnakemake:
         self.snakemake_report = str(
             self.path_to_audit.joinpath(self.name_snakemake_report)
         )
-        if self.exclusion_file is None:
-            print("There is no exclude file")
-        else:
-            print("found exclude file")
-            self.exclusion_file = pathlib.Path(self.exclusion_file)
-            print("exclude file = ", self.exclusion_file)
 
-    def get_run_info(self):
-        """
-        Produce info specific for the current run, like a random ID, timestamp
-        and host name.
-        """
-        self.unique_id = uuid4()
-        self.date_and_time = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
-        self.hostname = str(subprocess.check_output(["hostname"]).strip())
-
-    def copy_exclusion_file(self):
+    def __copy_exclusion_file_to_audit_path(self):
         """
         Make a copy of the exclude file.
         """
-        print("exclude file: ", self.exclusion_file)
         if self.exclusion_file is not None:
-            print("Make copy of exclude file")
             shutil.copy(self.exclusion_file, self.path_to_audit)
 
-    def get_git_audit(self, git_file: Path):
+    def write_git_audit_file(self, git_file: Path):
         """
         Function to get URL and commit from pipeline repo (if downloaded
         through git)
@@ -359,14 +345,14 @@ class RunSnakemake:
         with open(git_file, "w") as file:
             yaml.dump(git_audit, file, default_flow_style=False)
 
-    def get_pipeline_audit(self, pipeline_file: Path):
+    def write_pipeline_audit_file(self, pipeline_file: Path):
         """Get the pipeline_info and print it to a file for audit trail"""
         print(
             message_formatter(
                 f"Collecting information about the pipeline (see {str(pipeline_file)})"
             )
         )
-        self.get_run_info()
+
         pipeline_info = {
             "pipeline_name": self.pipeline_name,
             "pipeline_version": self.pipeline_version,
@@ -377,7 +363,7 @@ class RunSnakemake:
         with open(pipeline_file, "w") as file:
             yaml.dump(pipeline_info, file, default_flow_style=False)
 
-    def get_conda_audit(self, conda_file: Path):
+    def write_conda_audit_file(self, conda_file: Path):
         """
         Get list of environments in current conda environment
         """
@@ -391,7 +377,7 @@ class RunSnakemake:
             file.writelines("Master environment list:\n\n")
             file.write(str(conda_audit))
 
-    def generate_audit_trail(self):
+    def generate_audit_trail(self) -> list[Path]:
         """
         Produce audit trail in the output_dir. Most file contents are produced
         within this function but the sample_sheet and the user_parameters file
@@ -406,13 +392,13 @@ class RunSnakemake:
         ).exists(), f"The provided user_parameters ({self.user_parameters}) does not exist. Either this file was not created properly by the pipeline or was deleted before starting the pipeline"
 
         git_file = self.path_to_audit.joinpath("log_git.yaml")
-        self.get_git_audit(git_file)
+        self.write_git_audit_file(git_file)
 
         conda_file = self.path_to_audit.joinpath("log_conda.txt")
-        self.get_conda_audit(conda_file)
+        self.write_conda_audit_file(conda_file)
 
         pipeline_file = self.path_to_audit.joinpath("log_pipeline.yaml")
-        self.get_pipeline_audit(pipeline_file)
+        self.write_pipeline_audit_file(pipeline_file)
 
         user_parameters_audit_file = self.path_to_audit.joinpath("user_parameters.yaml")
         subprocess.run(
@@ -432,7 +418,7 @@ class RunSnakemake:
             samples_audit_file,
         ]
 
-    def run_snakemake(self):
+    def run_snakemake(self) -> bool:
         """
         Main function to run snakemake. It has all the pre-determined input for
         running a Juno pipeline. Everything is customizable to run outside the
@@ -446,8 +432,8 @@ class RunSnakemake:
         # store the exclusion file in the audit_trail as well
         if not self.dryrun or self.unlock:
             self.path_to_audit.mkdir(parents=True, exist_ok=True)
-            self.audit_trail = self.generate_audit_trail()
-            self.exclusion_file = self.copy_exclusion_file()
+            self.audit_trail_files = self.generate_audit_trail()
+            self.__copy_exclusion_file_to_audit_path()
 
         if self.local:
             print(message_formatter("Jobs will run locally"))
@@ -475,7 +461,7 @@ class RunSnakemake:
                 )
             )
 
-        pipeline_run_successful = snakemake(
+        pipeline_run_successful: bool = snakemake(
             self.snakefile,
             workdir=self.workdir,
             configfiles=[self.user_parameters, self.fixed_parameters],
