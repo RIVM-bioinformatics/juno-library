@@ -442,11 +442,11 @@ class TestPipelineStartup(unittest.TestCase):
             }
         }
         expected_metadata = {"1234": {"genus": "salmonella", "species": "enterica"}}
-        pipeline = juno_library.PipelineStartup("fake_dir_juno", "both")
+        pipeline = juno_library.PipelineStartup(Path("fake_dir_juno"), "both")
         pipeline.start_juno_pipeline()
         self.assertDictEqual(pipeline.sample_dict, expected_output)
         pipeline.get_metadata_from_csv_file(
-            filepath="fake_dir_juno/identify_species/top1_species_multireport.csv"
+            filepath=Path("fake_dir_juno/identify_species/top1_species_multireport.csv")
         )
         self.assertDictEqual(
             pipeline.juno_metadata, expected_metadata, pipeline.juno_metadata
@@ -465,7 +465,7 @@ class TestPipelineStartup(unittest.TestCase):
         """
         Testing the pipeline startup fails with wrong column names in metadata
         """
-        test = juno_library.PipelineStartup("fake_dir_juno", "both")
+        test = juno_library.PipelineStartup(Path("fake_dir_juno"), "both")
         test.start_juno_pipeline()
         with self.assertRaisesRegex(
             AssertionError, "does not contain one or more of the expected column names"

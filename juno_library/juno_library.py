@@ -18,6 +18,7 @@ import yaml
 from dataclasses import dataclass
 
 
+@dataclass
 class PipelineStartup:
     """
     Class to perform actions that need to be done before running a pipeline.
@@ -28,20 +29,19 @@ class PipelineStartup:
     as input
     """
 
-    def __init__(
-        self, input_dir, input_type="both", exclusion_file=None, min_num_lines=0
-    ):
-        """Constructor"""
-        self.input_dir = pathlib.Path(input_dir)
-        if exclusion_file is None:
-            self.exclusion_file = None
-        else:
-            self.exclusion_file = pathlib.Path(exclusion_file)
-        self.input_type = input_type
-        self.min_num_lines = int(min_num_lines)
-        self.__validate_arguments()
+    input_dir: Path
+    input_type: str = "both"
+    exclusion_file: None | Path = None
+    min_num_lines: int = 0
 
-    def __validate_arguments(self):
+    def __post_init__(self):
+        """Constructor"""
+        self.input_dir = pathlib.Path(self.input_dir)
+        if self.exclusion_file:
+            self.exclusion_file = pathlib.Path(self.exclusion_file)
+        self.min_num_lines = int(self.min_num_lines)
+
+        # Validate input files
         assert (
             self.input_dir.is_dir()
         ), f"The provided input directory ({str(self.input_dir)}) does not exist. Please provide an existing directory"
@@ -72,7 +72,7 @@ class PipelineStartup:
         self.make_sample_dict()
         if self.exclusion_file is not None:
             print("found exclusion file")
-            self.sample_dict = self.__exclude_samples()
+            self.__exclude_samples()
             print("new sample dict without samples that are excluded")
             print(self.sample_dict)
         print(
@@ -80,23 +80,19 @@ class PipelineStartup:
         )
         self.validate_sample_dict()
 
-    def __input_dir_is_juno_assembly_output(self):
+    def __input_dir_is_juno_assembly_output(self) -> bool:
         """
         Function to check whether the input directory is actually the output
         of the Juno_assembly pipeline. The Juno_assembly pipeline is often the
         first step for downstream analyses, so its output becomes the input
         directory of other pipelines
         """
-        is_juno_assembly_output = (
+        return (
             self.input_dir.joinpath("clean_fastq").exists()
             and self.input_dir.joinpath("de_novo_assembly_filtered").exists()
         )
-        if is_juno_assembly_output:
-            return True
-        else:
-            return False
 
-    def __define_input_subdirs(self):
+    def __define_input_subdirs(self) -> dict[str, Path]:
         """
         Function to check whether the input is from the Juno assembly
         pipeline or just a simple input directory
@@ -114,21 +110,20 @@ class PipelineStartup:
         else:
             return {"fastq": self.input_dir, "fasta": self.input_dir}
 
-    def __validate_input_subdir(self, input_subdir, extension=("fasta")):
+    def __validate_input_subdir(self, input_subdir, extension=("fasta")) -> bool:
         """Function to validate whether the subdirectories (if applicable)
         or the input directory have files that end with the expected extension"""
         for item in input_subdir.iterdir():
             if item.is_file():
                 if str(item).endswith(extension):
                     return True
-                    break
         raise ValueError(
             error_formatter(
                 f"Input directory ({self.input_dir}) does not contain files that end with one of the expected extensions {extension}."
             )
         )
 
-    def __validate_input_dir(self):
+    def __validate_input_dir(self) -> bool:
         """
         Function to check that input directory is indeed an existing directory
         that contains files with the expected extension (fastq or fasta)
@@ -147,7 +142,7 @@ class PipelineStartup:
                 self.supported_extensions[self.input_type],
             )
 
-    def __enlist_fastq_samples(self):
+    def __enlist_fastq_samples(self) -> dict[str, dict[str, str]]:
         """
         Function to enlist the fastq files found in the input directory.
         Returns a dictionary with the form:
@@ -160,7 +155,7 @@ class PipelineStartup:
         pattern = re.compile(
             r"(.*?)(?:_S\d+_|_S\d+.|_|\.)(?:_L555_)?(?:p)?R?(1|2)(?:_.*\.|\..*\.|\.)f(ast)?q(\.gz)?"
         )
-        samples = {}
+        samples: dict[str, dict[str, str]] = {}
         for file_ in self.__subdirs_["fastq"].iterdir():
             if validate_file_has_min_lines(file_, self.min_num_lines):
                 match = pattern.fullmatch(file_.name)
@@ -169,14 +164,14 @@ class PipelineStartup:
                     sample[f"R{match.group(2)}"] = str(file_)
         return samples
 
-    def __enlist_fasta_samples(self):
+    def __enlist_fasta_samples(self) -> dict[str,dict[str,str]]:
         """
         Function to enlist the fasta files found in the input
         directory. Returns a dictionary with the form
         {sample: {assembly: fasta_file}}
         """
         pattern = re.compile("(.*?).fasta")
-        samples = {}
+        samples: dict[str,dict[str,str]] = {}
         for file_ in self.__subdirs_["fasta"].iterdir():
             if validate_file_has_min_lines(file_, self.min_num_lines):
                 match = pattern.fullmatch(file_.name)
@@ -185,7 +180,7 @@ class PipelineStartup:
                     sample["assembly"] = str(file_)
         return samples
 
-    def make_sample_dict(self):
+    def make_sample_dict(self) -> dict[str,dict[str,Path]]:
         """
         Function to make a sample sheet from the input directory (expecting
         either fastq or fasta files as input)
@@ -206,14 +201,13 @@ class PipelineStartup:
         """Function to exclude low quality samples that are specified by the user in a .txt file, given in the argument
         parser with the option -ex or --exclude. Returns a sample dict as made in the function make_sample_dict"""
         if self.exclusion_file:
-            exclude_file_path = pathlib.Path(self.exclusion_file)
-            exclude_file_name = exclude_file_path.name
-            print("Exclude file path: ", exclude_file_path)
+            exclude_file_name = self.exclusion_file.name
+            print("Exclude file path: ", self.exclusion_file)
             print("Exclude file name: ", exclude_file_name)
-            if exclude_file_path.is_file() and str(exclude_file_path).endswith(
+            if self.exclusion_file.is_file() and str(self.exclusion_file).endswith(
                 ".exclude"
             ):
-                with open(exclude_file_path, "r") as exclude_file_open:
+                with open(self.exclusion_file, "r") as exclude_file_open:
                     exclude_samples = exclude_file_open.readlines()
                     print("samples to exclude: ", exclude_samples)
                     exclude_samples_stripped = [
@@ -224,7 +218,6 @@ class PipelineStartup:
                         for sample in self.sample_dict
                         if sample not in exclude_samples_stripped
                     }
-            return self.sample_dict
 
     def validate_sample_dict(self):
         if not self.sample_dict:
@@ -254,7 +247,7 @@ class PipelineStartup:
                     )
 
     def get_metadata_from_csv_file(
-        self, filepath=None, expected_colnames=["sample", "genus"]
+        self, filepath: Path | None = None, expected_colnames : list[str]=["sample", "genus"]
     ):
         """
         Function to get a dictionary with the sample, genus and species per
@@ -269,7 +262,7 @@ class PipelineStartup:
                 "identify_species", "top1_species_multireport.csv"
             )
         else:
-            juno_species_file = pathlib.Path(filepath)
+            juno_species_file = Path(filepath)
         if juno_species_file.exists():
             juno_metadata = read_csv(juno_species_file, dtype={"sample": str})
             assert all(
@@ -306,9 +299,9 @@ class RunSnakemake:
     dryrun: bool = False
     useconda: bool = True
     conda_prefix: None | str = None
-    usesingularity = True
-    singularityargs = ""
-    singularity_prefix = None
+    usesingularity: bool = True
+    singularityargs: str = ""
+    singularity_prefix: str | None = None
     restarttimes: int = 0
     latency_wait: int = 60
     time_limit: int = 60
@@ -350,7 +343,7 @@ class RunSnakemake:
             print("Make copy of exclude file")
             shutil.copy(self.exclusion_file, self.path_to_audit)
 
-    def get_git_audit(self, git_file):
+    def get_git_audit(self, git_file: Path):
         """
         Function to get URL and commit from pipeline repo (if downloaded
         through git)
@@ -364,7 +357,7 @@ class RunSnakemake:
         with open(git_file, "w") as file:
             yaml.dump(git_audit, file, default_flow_style=False)
 
-    def get_pipeline_audit(self, pipeline_file):
+    def get_pipeline_audit(self, pipeline_file: Path):
         """Get the pipeline_info and print it to a file for audit trail"""
         print(
             message_formatter(
@@ -382,7 +375,7 @@ class RunSnakemake:
         with open(pipeline_file, "w") as file:
             yaml.dump(pipeline_info, file, default_flow_style=False)
 
-    def get_conda_audit(self, conda_file):
+    def get_conda_audit(self, conda_file: Path):
         """
         Get list of environments in current conda environment
         """
@@ -540,7 +533,3 @@ class RunSnakemake:
             **self.kwargs,
         )
         return snakemake_report_successful
-
-
-# e = PipelineStartup()
-# e.exclude_samples()
