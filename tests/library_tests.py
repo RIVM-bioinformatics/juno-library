@@ -134,7 +134,7 @@ class TestPipelineStartup(unittest.TestCase):
     """Testing the pipeline startup (generating dict with samples) from general
     Juno pipelines"""
 
-    def setUpClass(self):
+    def setUpClass():
         """Making fake directories and files to test different case scenarios
         for starting pipeline"""
         fake_dirs = [
@@ -192,7 +192,7 @@ class TestPipelineStartup(unittest.TestCase):
             if fake_file == "exclusion_file.exclude":
                 make_non_empty_file(fake_file, content="sample1")
 
-    def tearDownClass(self):
+    def tearDownClass():
         """Removing fake directories/files"""
 
         fake_dirs = [
@@ -372,7 +372,7 @@ class TestPipelineStartup(unittest.TestCase):
         pipeline.start_juno_pipeline()
         pipeline.get_metadata_from_csv_file()
         self.assertDictEqual(pipeline.sample_dict, expected_output)
-        self.assertEqual(pipeline.juno_metadata, None)
+        self.assertFalse(hasattr(pipeline, "juno_metadata"))
 
     def test_files_smaller_than_minlen(self):
         """Testing the pipeline startup fails if you set a min_num_lines
@@ -475,7 +475,7 @@ class TestRunSnakemake(unittest.TestCase):
     """Testing the RunSnakemake class. At least testing that it is constructed
     properly (not testing the run itself)"""
 
-    def setUpClass(self):
+    def setUpClass():
         with open("user_parameters.yaml", "a") as file_:
             file_.write("fake_parameter: null")
         with open("fixed_parameters.yaml", "a") as file_:
@@ -487,7 +487,7 @@ class TestRunSnakemake(unittest.TestCase):
         pathlib.Path("fake_input/sample_b.fasta").touch()
         pathlib.Path("fake_input/sample_c.fasta").touch()
 
-    def tearDownClass(self):
+    def tearDownClass():
         os.system("rm sample_sheet.yaml user_parameters.yaml fixed_parameters.yaml")
         os.system("rm -rf fake_output_dir")
         os.system("rm -rf fake_hpcoutput_dir")
