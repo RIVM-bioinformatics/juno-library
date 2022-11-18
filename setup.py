@@ -3,9 +3,9 @@ from __future__ import print_function
 from juno_library import juno_info
 import sys
 
-if sys.version_info < (3, 7):
+if sys.version_info < (3, 10):
     print(
-        "At least Python 3.7 is required for the Juno pipelines to work.\n",
+        "At least Python 3.10 is required for the Juno pipelines to work.\n",
         file=sys.stderr,
     )
     exit(1)
@@ -37,13 +37,11 @@ setup(
         "drmaa>=0.7.9",
         "snakemake>=7.18",
         "xlrd>=2.0",
-        "unittest2",
         "pip>=22.3",
         "pyyaml>=6.0",
+        "types-PyYAML>=6.0"
         "numpy>=1.23",
-        "dask",
-        "unittest2",
-        "pyyaml",
+        "dask>=2022.11.0",
     ],
     entry_points={"console_scripts": ["juno_pipeline = juno_library:main"]},
     include_package_data=True,
