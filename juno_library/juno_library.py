@@ -215,7 +215,11 @@ class PipelineStartup:
                         if sample not in exclude_samples_stripped
                     }
             else:
-                print(error_formatter(f"Exclusion file:\n\t{self.exclusion_file}\ndoes not exist or does not end with '.exclude'. It is ignored."))
+                print(
+                    error_formatter(
+                        f"Exclusion file:\n\t{self.exclusion_file}\ndoes not exist or does not end with '.exclude'. It is ignored."
+                    )
+                )
 
     def validate_sample_dict(self) -> bool:
         if not self.sample_dict:
@@ -287,7 +291,7 @@ class RunSnakemake:
     pipeline_version: str
     output_dir: Path
     workdir: Path
-    exclusion_file: None | Path
+    exclusion_file: None | Path = None
     sample_sheet: Path = pathlib.Path("config/sample_sheet.yaml")
     user_parameters: Path = pathlib.Path("config/user_parameters.yaml")
     fixed_parameters: Path = pathlib.Path("config/pipeline_parameters.yaml")

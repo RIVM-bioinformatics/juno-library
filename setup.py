@@ -39,7 +39,7 @@ setup(
         "xlrd>=2.0",
         "pip>=22.3",
         "pyyaml>=6.0",
-        "types-PyYAML>=6.0"
+        "types-PyYAML>=6.0",
         "numpy>=1.23",
         "dask>=2022.11.0",
     ],
