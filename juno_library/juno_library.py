@@ -315,7 +315,7 @@ class RunSnakemake:
     unique_id = uuid4()
     date_and_time = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
     hostname = str(subprocess.check_output(["hostname"]).strip())
-    kwargs = field(default_factory=dict)
+    kwargs: dict = field(default_factory=dict)
 
     def __post_init__(self, **kwargs):
         """Constructor"""
