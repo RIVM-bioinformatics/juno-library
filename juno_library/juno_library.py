@@ -18,7 +18,7 @@ import yaml
 from dataclasses import dataclass
 
 
-@dataclass
+@dataclass(kw_only=True)
 class PipelineStartup:
     """
     Class to perform actions that need to be done before running a pipeline.
@@ -279,7 +279,7 @@ class PipelineStartup:
             self.juno_metadata = juno_metadata.to_dict(orient="index")
 
 
-@dataclass
+@dataclass(kw_only=True)
 class RunSnakemake:
     """
     Class with necessary input to actually run Snakemake. It is basically a
