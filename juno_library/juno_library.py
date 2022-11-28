@@ -15,7 +15,7 @@ from snakemake import snakemake
 import subprocess
 from uuid import uuid4
 import yaml
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 @dataclass(kw_only=True)
@@ -315,6 +315,7 @@ class RunSnakemake:
     unique_id = uuid4()
     date_and_time = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
     hostname = str(subprocess.check_output(["hostname"]).strip())
+    kwargs = field(default_factory=dict)
 
     def __post_init__(self, **kwargs):
         """Constructor"""
