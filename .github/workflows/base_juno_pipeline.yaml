@@ -17,16 +17,12 @@ jobs:
     name: Testing main classes ${{ matrix.config.os }}
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Setting up conda
         uses: conda-incubator/setup-miniconda@v2
         with:
-          mamba-version: "0.27.0"
-          channels: conda-forge, anaconda, bioconda, biocore, defaults
-          channel-priority: true
           environment-file: juno_library/envs/juno_library.yaml 
           activate-environment: juno_library
-          auto-activate-base: false
       - name: Conda list
         shell: bash -l {0}
         run: conda list
