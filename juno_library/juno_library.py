@@ -4,18 +4,20 @@ bacteriology genomics pipeline with the format used in the IDS-
 bioinformatics group at the RIVM. All our pipelines use Snakemake.
 """
 
-import shutil
-from juno_library.helper_functions import *
-from datetime import datetime
-from pandas import read_csv
 import pathlib
-from pathlib import Path
 import re
-from snakemake import snakemake
+import shutil
 import subprocess
-from uuid import uuid4
-import yaml
 from dataclasses import dataclass, field
+from datetime import datetime
+from pathlib import Path
+from uuid import UUID, uuid4
+
+import yaml
+from pandas import read_csv
+from snakemake import snakemake
+
+from juno_library.helper_functions import *
 
 
 @dataclass(kw_only=True)
@@ -35,7 +37,6 @@ class PipelineStartup:
     min_num_lines: int = 0
 
     def __post_init__(self):
-        """Constructor"""
         self.input_dir = pathlib.Path(self.input_dir)
         if self.exclusion_file:
             self.exclusion_file = pathlib.Path(self.exclusion_file)
@@ -53,7 +54,7 @@ class PipelineStartup:
         if self.exclusion_file is not None:
             assert self.exclusion_file.is_file()
 
-    def start_juno_pipeline(self):
+    def setup_and_validate(self):
         """
         This function performs calls other functions in the class to complete
         all the necessary steps needed for a robust and well documented Juno
@@ -65,7 +66,15 @@ class PipelineStartup:
             "fastq": (".fastq", ".fastq.gz", ".fq", ".fq.gz"),
             "fasta": (".fasta"),
         }
-        self.__subdirs_ = self.__define_input_subdirs()
+
+        if self.__input_dir_is_juno_assembly_output():
+            self.__subdirs_ = {
+                "fastq": self.input_dir.joinpath("clean_fastq"),
+                "fasta": self.input_dir.joinpath("de_novo_assembly_filtered"),
+            }
+        else:
+            self.__subdirs_ = {"fastq": self.input_dir, "fasta": self.input_dir}
+
         self.__validate_input_dir()
         print("Making a list of samples to be processed in this pipeline run...")
         print("Checking if samples need to be Excluded")
@@ -92,52 +101,32 @@ class PipelineStartup:
             and self.input_dir.joinpath("de_novo_assembly_filtered").exists()
         )
 
-    def __define_input_subdirs(self) -> dict[str, Path]:
-        """
-        Function to check whether the input is from the Juno assembly
-        pipeline or just a simple input directory
-        """
-        # Only when the input_dir comes from the Juno-assembly pipeline
-        # the fastq and fasta files do not need to be in the same
-        # folder (fastq are then expected in a subfolder called
-        # <input_dir>/clean_fastq and the fasta assembly files are
-        # expected in a subfolder called <input_dir>/de_novo_assembly_filtered)
-        if self.__input_dir_is_juno_assembly_output():
-            return {
-                "fastq": self.input_dir.joinpath("clean_fastq"),
-                "fasta": self.input_dir.joinpath("de_novo_assembly_filtered"),
-            }
-        else:
-            return {"fastq": self.input_dir, "fasta": self.input_dir}
-
-    def __validate_input_subdir(self, input_subdir, extension=("fasta")) -> bool:
+    def __validate_input_subdir(self, input_subdir, extension="fasta"):
         """Function to validate whether the subdirectories (if applicable)
         or the input directory have files that end with the expected extension"""
         for item in input_subdir.iterdir():
-            if item.is_file():
-                if str(item).endswith(extension):
-                    return True
+            if item.is_file() and str(item).endswith(extension):
+                return
         raise ValueError(
             error_formatter(
                 f"Input directory ({self.input_dir}) does not contain files that end with one of the expected extensions {extension}."
             )
         )
 
-    def __validate_input_dir(self) -> bool:
+    def __validate_input_dir(self):
         """
         Function to check that input directory is indeed an existing directory
         that contains files with the expected extension (fastq or fasta)
         """
         if self.input_type == "both":
-            fastq_subdir_validated = self.__validate_input_subdir(
+            self.__validate_input_subdir(
                 self.__subdirs_["fastq"], self.supported_extensions["fastq"]
             )
-            fasta_subdir_validated = self.__validate_input_subdir(
+            self.__validate_input_subdir(
                 self.__subdirs_["fasta"], self.supported_extensions["fasta"]
             )
-            return fastq_subdir_validated and fasta_subdir_validated
         else:
-            return self.__validate_input_subdir(
+            self.__validate_input_subdir(
                 self.__subdirs_[self.input_type],
                 self.supported_extensions[self.input_type],
             )
@@ -312,7 +301,7 @@ class RunSnakemake:
     time_limit: int = 60
     name_snakemake_report: str = "snakemake_report.html"
     conda_frontend: str = "mamba"
-    unique_id = uuid4()
+    unique_id: UUID = uuid4()
     date_and_time = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
     hostname = str(subprocess.check_output(["hostname"]).strip())
     kwargs: dict = field(default_factory=dict)

@@ -1,7 +1,6 @@
 import argparse
 import subprocess
 import pathlib
-from typing import Union, Sequence, Any
 
 
 # Helper functions for text manipulation
