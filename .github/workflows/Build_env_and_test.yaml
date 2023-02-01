@@ -1,5 +1,3 @@
-# Based on: https://github.com/marketplace/actions/setup-miniconda#example-1-basic-usage
-
 name: Build Env and run tests
 
 on: 
