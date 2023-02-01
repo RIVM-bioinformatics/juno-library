@@ -1,4 +1,4 @@
-[![Base Juno pipeline](https://github.com/RIVM-bioinformatics/base_juno_pipeline/actions/workflows/base_juno_pipeline.yaml/badge.svg?branch=master)](https://github.com/RIVM-bioinformatics/base_juno_pipeline/actions/workflows/base_juno_pipeline.yaml)
+![Code quality](https://github.com/RIVM-bioinformatics/juno-library/actions/workflows/code_quality_checks.yaml/badge.svg)
 
 # Juno-Library
 
