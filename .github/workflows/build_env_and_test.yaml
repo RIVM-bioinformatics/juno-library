@@ -1,8 +1,11 @@
 # Based on: https://github.com/marketplace/actions/setup-miniconda#example-1-basic-usage
 
-name: Base Juno pipeline
+name: Build Env and run tests
 
-on: [push, pull_request]
+on: 
+  pull_request:
+    branches:
+      - main
 
 jobs:
   build:
@@ -10,7 +13,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        config: 
+        config:
           - {os: macOS-latest}
           - {os: ubuntu-18.04}
           - {os: ubuntu-latest}
@@ -18,7 +21,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-      - name: Setting up conda
+      - name: Conda setup
         uses: conda-incubator/setup-miniconda@v2
         with:
           environment-file: juno_library/envs/juno_library.yaml 
@@ -26,6 +29,6 @@ jobs:
       - name: Conda list
         shell: bash -l {0}
         run: conda list
-      - name: Test base
+      - name: Unit tests
         shell: bash -l {0}
         run: python tests/library_tests.py
