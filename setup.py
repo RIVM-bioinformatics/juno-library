@@ -1,6 +1,6 @@
 from __future__ import print_function
 
-from juno_library import juno_info
+import juno_library.juno_info as juno_info
 import sys
 
 if sys.version_info < (3, 10):

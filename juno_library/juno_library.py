@@ -44,10 +44,10 @@ class PipelineStartup:
         # Check if an exclusion file is given
         if self.exclusion_file:
             self.exclusion_file = pathlib.Path(self.exclusion_file)
-            
+
         # Set minimum number of lines e.g. fastq's should have
         self.min_num_lines = int(self.min_num_lines)
-        
+
         # Check if the input directory is created by juno-assembly and properly set up subdirs if so
         self.input_dir_is_juno_assembly_output = (
             self.input_dir.joinpath("clean_fastq").exists()
@@ -60,7 +60,6 @@ class PipelineStartup:
             }
         else:
             self.__subdirs_ = {"fastq": self.input_dir, "fasta": self.input_dir}
-            
 
         # Validate input files
         assert (
