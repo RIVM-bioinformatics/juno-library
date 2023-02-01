@@ -18,6 +18,7 @@ from pandas import read_csv
 from snakemake import snakemake
 
 from juno_library.helper_functions import *
+from juno_library.juno_info import *
 
 
 @dataclass(kw_only=True)
@@ -37,10 +38,29 @@ class PipelineStartup:
     min_num_lines: int = 0
 
     def __post_init__(self):
+        # Convert str to Path if needed
         self.input_dir = pathlib.Path(self.input_dir)
+
+        # Check if an exclusion file is given
         if self.exclusion_file:
             self.exclusion_file = pathlib.Path(self.exclusion_file)
+            
+        # Set minimum number of lines e.g. fastq's should have
         self.min_num_lines = int(self.min_num_lines)
+        
+        # Check if the input directory is created by juno-assembly and properly set up subdirs if so
+        self.input_dir_is_juno_assembly_output = (
+            self.input_dir.joinpath("clean_fastq").exists()
+            and self.input_dir.joinpath("de_novo_assembly_filtered").exists()
+        )
+        if self.input_dir_is_juno_assembly_output:
+            self.__subdirs_ = {
+                "fastq": self.input_dir.joinpath("clean_fastq"),
+                "fasta": self.input_dir.joinpath("de_novo_assembly_filtered"),
+            }
+        else:
+            self.__subdirs_ = {"fastq": self.input_dir, "fasta": self.input_dir}
+            
 
         # Validate input files
         assert (
@@ -67,14 +87,6 @@ class PipelineStartup:
             "fasta": (".fasta"),
         }
 
-        if self.__input_dir_is_juno_assembly_output():
-            self.__subdirs_ = {
-                "fastq": self.input_dir.joinpath("clean_fastq"),
-                "fasta": self.input_dir.joinpath("de_novo_assembly_filtered"),
-            }
-        else:
-            self.__subdirs_ = {"fastq": self.input_dir, "fasta": self.input_dir}
-
         self.__validate_input_dir()
         print("Making a list of samples to be processed in this pipeline run...")
         print("Checking if samples need to be Excluded")
@@ -88,18 +100,6 @@ class PipelineStartup:
             )
         )
         self.validate_sample_dict()
-
-    def __input_dir_is_juno_assembly_output(self) -> bool:
-        """
-        Function to check whether the input directory is actually the output
-        of the Juno_assembly pipeline. The Juno_assembly pipeline is often the
-        first step for downstream analyses, so its output becomes the input
-        directory of other pipelines
-        """
-        return (
-            self.input_dir.joinpath("clean_fastq").exists()
-            and self.input_dir.joinpath("de_novo_assembly_filtered").exists()
-        )
 
     def __validate_input_subdir(self, input_subdir, extension="fasta"):
         """Function to validate whether the subdirectories (if applicable)

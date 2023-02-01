@@ -43,6 +43,6 @@ setup(
         "numpy>=1.23",
         "dask>=2022.11.0",
     ],
-    entry_points={"console_scripts": ["juno_pipeline = juno_library:run"]},
+    entry_points={"console_scripts": ["juno_pipeline = juno_library.run:main"]},
     include_package_data=True,
 )

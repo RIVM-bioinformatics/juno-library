@@ -4,7 +4,6 @@ import argparse
 import pathlib
 import sys
 
-import juno_library
 import juno_library.juno_info as juno_info
 
 
