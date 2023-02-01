@@ -1,4 +1,4 @@
-![Code quality](https://github.com/RIVM-bioinformatics/juno-library/actions/workflows/code_quality_checks.yaml/badge.svg)
+[![Code quality](https://github.com/RIVM-bioinformatics/juno-library/actions/workflows/code_quality_checks.yaml/badge.svg)](https://github.com/RIVM-bioinformatics/juno-library/actions/workflows/code_quality_checks.yaml)
 
 # Juno-Library
 
