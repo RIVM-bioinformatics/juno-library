@@ -18,5 +18,5 @@ dependencies:
   - numpy=1.23.*
   - dask=2022.11.0
   - git=2.38.*
-  - setuptools = 65.7.*
-  - types-setuptools = 65.7.*
+  - setuptools = 65.5.*
+  - types-setuptools = 65.5.*
