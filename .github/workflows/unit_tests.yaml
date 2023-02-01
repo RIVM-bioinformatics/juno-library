@@ -1,4 +1,4 @@
-name: Build Env and run tests
+name: Unit tests
 
 on: 
   pull_request:
