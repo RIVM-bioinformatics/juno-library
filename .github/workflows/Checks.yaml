@@ -24,6 +24,6 @@ jobs:
           environment-file: juno_library/envs/juno_library.yaml 
           activate-environment: juno_library
       - run: pip install "black<23" "mypy" "snakefmt"
-      - run: black --diff .
-      - run: snakefmt .
+      - run: black --diff --check .
+      - run: snakefmt --check .
       - run: mypy --strict .

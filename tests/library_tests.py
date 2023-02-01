@@ -12,7 +12,9 @@ from juno_library import juno_library
 from juno_library.helper_functions import *
 
 
-def make_non_empty_file(file_path: str | Path, content: str="this\nfile\nhas\ncontents") -> None:
+def make_non_empty_file(
+    file_path: str | Path, content: str = "this\nfile\nhas\ncontents"
+) -> None:
     with open(file_path, "w") as file_:
         file_.write(content)
 

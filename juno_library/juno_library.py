@@ -101,7 +101,9 @@ class PipelineStartup:
         )
         self.validate_sample_dict()
 
-    def __validate_input_subdir(self, input_subdir: Path, extension: str | Sequence[str] = "fasta") -> None:
+    def __validate_input_subdir(
+        self, input_subdir: Path, extension: str | Sequence[str] = "fasta"
+    ) -> None:
         """Function to validate whether the subdirectories (if applicable)
         or the input directory have files that end with the expected extension"""
         for item in input_subdir.iterdir():
