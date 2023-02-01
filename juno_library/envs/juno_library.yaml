@@ -7,7 +7,8 @@ dependencies:
   - mamba=0.27.*
   - mypy=0.*
   - python=3.10.*
-  - pandas=1.5
+  - pandas=1.5.2
+  - pandas-stubs=1.5.2
   - drmaa==0.7.9
   - snakemake=7.18.*
   - xlrd=2.0.*
@@ -17,3 +18,5 @@ dependencies:
   - numpy=1.23.*
   - dask=2022.11.0
   - git=2.38.*
+  - setuptools = 65.7.*
+  - types-setuptools = 65.7.*
