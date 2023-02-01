@@ -29,8 +29,8 @@ setup(
     description=juno_info.__description__,
     zip_safe=False,
     license=juno_info.__license__,
-    packages=find_packages(include=["juno_library", "juno_library.*"]),
-    scripts=["juno_library/juno_library.py"],
+    packages=find_packages(),
+    scripts=["juno_library/run.py"],
     package_data={"juno_library": ["envs/*"]},
     install_requires=[
         "pandas>=1.5",
@@ -43,6 +43,6 @@ setup(
         "numpy>=1.23",
         "dask>=2022.11.0",
     ],
-    entry_points={"console_scripts": ["juno_pipeline = juno_library:main"]},
+    entry_points={"console_scripts": ["juno_pipeline = juno_library:run"]},
     include_package_data=True,
 )

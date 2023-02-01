@@ -1,9 +1,11 @@
+## This file is an example of a main entrypoint for a pipeline that uses this library ##
+
 import argparse
 import pathlib
 import sys
 
-import juno_info
 import juno_library
+import juno_library.juno_info as juno_info
 
 
 def get_args():
@@ -36,7 +38,7 @@ def get_args():
         "--pipelinename", type=str, metavar="STR", default="Juno", help="Pipeline name."
     )
     parser.add_argument(
-        "-v", "--v", type=str, metavar="VERSION", default="NA", help="Pipeline version."
+        "-v", "--version", action="version", version=juno_info.__version__
     )
     parser.add_argument(
         "-o",
