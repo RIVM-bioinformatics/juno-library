@@ -1,7 +1,7 @@
 import argparse
 import subprocess
 import pathlib
-
+from typing import Sequence, Any
 
 # Helper functions for text manipulation
 
@@ -40,7 +40,7 @@ def is_gz_file(filepath: str | pathlib.Path) -> bool:
         return file_.read(2) == b"\x1f\x8b"
 
 
-def validate_file_has_min_lines(file_path: str | pathlib.Path, min_num_lines: int = -1):
+def validate_file_has_min_lines(file_path: str | pathlib.Path, min_num_lines: int = -1) -> bool:
     """
     Test if gzip file contains more than the desired number of lines.
     Returns True/False
@@ -62,7 +62,7 @@ def validate_file_has_min_lines(file_path: str | pathlib.Path, min_num_lines: in
 # Helper functions for handling git repositories
 
 
-def download_git_repo(version: str, url: str, dest_dir: str | pathlib.Path):
+def download_git_repo(version: str, url: str, dest_dir: str | pathlib.Path) -> None:
     """Function to download a git repo"""
     # If updating (or simply an unfinished installation is present)
     # the downloading will fail. Therefore, need to remove all
@@ -138,8 +138,8 @@ class SnakemakeKwargsAction(argparse.Action):
     by snakemake API. This is advanced usage.
     """
 
-    def __call__(self, parser, namespace, values, option_string=None):
-        keyword_dict = {}
+    def __call__(self, parser:argparse.ArgumentParser, namespace: argparse.Namespace, values: None | str | Sequence[str], option_string: str | None=None) -> None:
+        keyword_dict: dict[str, Sequence[str] | str] = {}
         if not values:
             msg = f"No arguments and values were given to --snakemake-args. Did you try to pass an extra argument to Snakemkake? Make sure that you used the API format and that you use the argument int he form: arg=value."
             raise argparse.ArgumentTypeError(error_formatter(msg))
@@ -148,8 +148,9 @@ class SnakemakeKwargsAction(argparse.Action):
             if len(pieces) == 2:
                 value = pieces[1]
                 if value.startswith("["):
-                    value = value.replace("[", "").replace("]", "").split(",")
-                keyword_dict[pieces[0]] = value
+                    keyword_dict[pieces[0]] = value.replace("[", "").replace("]", "").split(",")
+                else:
+                    keyword_dict[pieces[0]] = value
             else:
                 msg = f"The argument {pair} is not valid. Did you try to pass an extra argument to Snakemkake? Make sure that you used the API format and that you use the argument int he form: arg=value."
                 raise argparse.ArgumentTypeError(error_formatter(msg))

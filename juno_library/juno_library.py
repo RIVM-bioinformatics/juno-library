@@ -19,6 +19,7 @@ from snakemake import snakemake
 
 from juno_library.helper_functions import *
 from juno_library.juno_info import *
+from typing import Sequence, Any
 
 
 @dataclass(kw_only=True)
@@ -37,7 +38,7 @@ class PipelineStartup:
     exclusion_file: None | Path = None
     min_num_lines: int = 0
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         # Convert str to Path if needed
         self.input_dir = pathlib.Path(self.input_dir)
 
@@ -73,7 +74,7 @@ class PipelineStartup:
         if self.exclusion_file is not None:
             assert self.exclusion_file.is_file()
 
-    def setup_and_validate(self):
+    def setup_and_validate(self) -> None:
         """
         This function performs calls other functions in the class to complete
         all the necessary steps needed for a robust and well documented Juno
@@ -100,11 +101,11 @@ class PipelineStartup:
         )
         self.validate_sample_dict()
 
-    def __validate_input_subdir(self, input_subdir, extension="fasta"):
+    def __validate_input_subdir(self, input_subdir: Path, extension: str | Sequence[str] = "fasta") -> None:
         """Function to validate whether the subdirectories (if applicable)
         or the input directory have files that end with the expected extension"""
         for item in input_subdir.iterdir():
-            if item.is_file() and str(item).endswith(extension):
+            if item.is_file() and str(item).endswith(tuple(extension)):
                 return
         raise ValueError(
             error_formatter(
@@ -112,7 +113,7 @@ class PipelineStartup:
             )
         )
 
-    def __validate_input_dir(self):
+    def __validate_input_dir(self) -> None:
         """
         Function to check that input directory is indeed an existing directory
         that contains files with the expected extension (fastq or fasta)
@@ -185,7 +186,7 @@ class PipelineStartup:
         self.sample_dict = samples
         return samples
 
-    def __exclude_samples(self):
+    def __exclude_samples(self) -> None:
         """Function to exclude low quality samples that are specified by the user in a .txt file, given in the argument
         parser with the option -ex or --exclude. Returns a sample dict as made in the function make_sample_dict"""
         if self.exclusion_file:
@@ -241,7 +242,7 @@ class PipelineStartup:
         self,
         filepath: Path | None = None,
         expected_colnames: list[str] = ["sample", "genus"],
-    ):
+    ) -> None:
         """
         Function to get a dictionary with the sample, genus and species per
         sample
@@ -303,9 +304,9 @@ class RunSnakemake:
     unique_id: UUID = uuid4()
     date_and_time = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
     hostname = str(subprocess.check_output(["hostname"]).strip())
-    kwargs: dict = field(default_factory=dict)
+    kwargs: dict[str, Any] = field(default_factory=dict)
 
-    def __post_init__(self, **kwargs):
+    def __post_init__(self, **kwargs: Any) -> None:
         """Constructor"""
         self.kwargs = kwargs
         self.path_to_audit = self.output_dir.joinpath("audit_trail")
@@ -316,14 +317,14 @@ class RunSnakemake:
             self.path_to_audit.joinpath(self.name_snakemake_report)
         )
 
-    def __copy_exclusion_file_to_audit_path(self):
+    def __copy_exclusion_file_to_audit_path(self) -> None:
         """
         Make a copy of the exclude file.
         """
         if self.exclusion_file is not None:
             shutil.copy(self.exclusion_file, self.path_to_audit)
 
-    def write_git_audit_file(self, git_file: Path):
+    def write_git_audit_file(self, git_file: Path) -> None:
         """
         Function to get URL and commit from pipeline repo (if downloaded
         through git)
@@ -337,7 +338,7 @@ class RunSnakemake:
         with open(git_file, "w") as file:
             yaml.dump(git_audit, file, default_flow_style=False)
 
-    def write_pipeline_audit_file(self, pipeline_file: Path):
+    def write_pipeline_audit_file(self, pipeline_file: Path) -> None:
         """Get the pipeline_info and print it to a file for audit trail"""
         print(
             message_formatter(
@@ -355,7 +356,7 @@ class RunSnakemake:
         with open(pipeline_file, "w") as file:
             yaml.dump(pipeline_info, file, default_flow_style=False)
 
-    def write_conda_audit_file(self, conda_file: Path):
+    def write_conda_audit_file(self, conda_file: Path) -> None:
         """
         Get list of environments in current conda environment
         """
@@ -483,7 +484,7 @@ class RunSnakemake:
         print(message_formatter(f"Finished running {self.pipeline_name} pipeline!"))
         return pipeline_run_successful
 
-    def make_snakemake_report(self):
+    def make_snakemake_report(self) -> bool:
         """
         Function to make a snakemake report after having run a pipeline. Note
         that it expects that the output files were already produced by the
@@ -494,7 +495,7 @@ class RunSnakemake:
         # used instead of the original sample sheet. This is to avoid that if
         # a new run is started while there is one running, the correct sample
         # sheet for this new run is used.
-        snakemake_report_successful = snakemake(
+        snakemake_report_successful: bool = snakemake(
             self.snakefile,
             workdir=self.workdir,
             configfiles=[self.user_parameters, self.fixed_parameters],

@@ -12,7 +12,7 @@ from juno_library import juno_library
 from juno_library.helper_functions import *
 
 
-def make_non_empty_file(file_path, content="this\nfile\nhas\ncontents"):
+def make_non_empty_file(file_path: str | Path, content: str="this\nfile\nhas\ncontents") -> None:
     with open(file_path, "w") as file_:
         file_.write(content)
 
@@ -20,11 +20,11 @@ def make_non_empty_file(file_path, content="this\nfile\nhas\ncontents"):
 class TestTextJunoHelpers(unittest.TestCase):
     """Testing Text Helper Functions"""
 
-    def test_error_formatter(self):
+    def test_error_formatter(self) -> None:
         """Testing that the error formatter does add the color codes to the text"""
         self.assertEqual(error_formatter("message"), "\033[0;31mmessage\n\033[0;0m")
 
-    def test_message_formatter(self):
+    def test_message_formatter(self) -> None:
         """Testing that the message formatter does add the color codes to the text"""
         self.assertEqual(message_formatter("message"), "\033[0;33mmessage\n\033[0;0m")
 
@@ -32,7 +32,7 @@ class TestTextJunoHelpers(unittest.TestCase):
 class TestFileJunoHelpers(unittest.TestCase):
     """Testing File Helper Functions"""
 
-    def test_validate_file_has_min_lines(self):
+    def test_validate_file_has_min_lines(self) -> None:
         """Testing that the function to check whether a file is empty works.
         It should return True if nonempty file"""
         nonempty_file = "nonempty.txt"
@@ -40,7 +40,7 @@ class TestFileJunoHelpers(unittest.TestCase):
         self.assertTrue(validate_file_has_min_lines(nonempty_file))
         os.system(f"rm -f {nonempty_file}")
 
-    def test_validate_file_has_min_lines_2(self):
+    def test_validate_file_has_min_lines_2(self) -> None:
         """Testing that the function to check whether a file is empty works.
         It should return True if file is empty but no min_num_lines is given
         and False if empty file and a min_num_lines of at least 1"""
@@ -49,7 +49,7 @@ class TestFileJunoHelpers(unittest.TestCase):
         self.assertFalse(validate_file_has_min_lines(empty_file, min_num_lines=1))
         os.system(f"rm -f {empty_file}")
 
-    def test_validate_is_nonempty_when_gzipped(self):
+    def test_validate_is_nonempty_when_gzipped(self) -> None:
         """Testing that the function to check whether a gzipped file is empty
         works. It should return True if file is empty but no min_num_lines is
         given and False if empty file and a min_num_lines of at least 1"""
@@ -71,7 +71,7 @@ class TestJunoHelpers(unittest.TestCase):
         not Path("/data/BioGrid/hernanda/").exists(),
         "Skipped in GitHub Actions because it unexplicably (so far) fails there",
     )
-    def test_git_url_of_base_juno_pipeline(self):
+    def test_git_url_of_base_juno_pipeline(self) -> None:
         """Testing if the git URL is retrieved properly (taking this folder
         as example
         """
@@ -89,7 +89,7 @@ class TestJunoHelpers(unittest.TestCase):
             url == "https://github.com/RIVM-bioinformatics/juno-library.git"
         )
 
-    def test_fail_when_dir_not_repo(self):
+    def test_fail_when_dir_not_repo(self) -> None:
         """Testing that the url is 'not available' when the directory is not
         a git repo
         """
@@ -102,7 +102,7 @@ class TestJunoHelpers(unittest.TestCase):
         not Path("/data/BioGrid/hernanda/").exists(),
         "Skipped in GitHub Actions because it unexplicably (so far) fails there",
     )
-    def test_get_commit_git_from_repo(self):
+    def test_get_commit_git_from_repo(self) -> None:
         """Testing that the git commit function works"""
         try:
             is_repo = subprocess.check_output(
@@ -119,7 +119,7 @@ class TestJunoHelpers(unittest.TestCase):
         self.assertIsInstance(get_commit_git(main_script_path), str)
         self.assertFalse(commit_available)
 
-    def test_get_commit_git_from_non_git_repo(self):
+    def test_get_commit_git_from_non_git_repo(self) -> None:
         """Testing that the git commit function gives right output when no git repo"""
         self.assertIsInstance(get_commit_git(os.path.expanduser("~")), str)
         self.assertEqual(
@@ -133,7 +133,7 @@ class TestPipelineStartup(unittest.TestCase):
     Juno pipelines"""
 
     @classmethod
-    def setUpClass(cls):
+    def setUpClass(cls) -> None:
         """Making fake directories and files to test different case scenarios
         for starting pipeline"""
         fake_dirs = [
@@ -192,7 +192,7 @@ class TestPipelineStartup(unittest.TestCase):
                 make_non_empty_file(fake_file, content="sample1")
 
     @classmethod
-    def tearDownClass(cls):
+    def tearDownClass(cls) -> None:
         """Removing fake directories/files"""
 
         fake_dirs = [
@@ -211,7 +211,7 @@ class TestPipelineStartup(unittest.TestCase):
         for folder in fake_dirs:
             os.system("rm -rf {}".format(str(folder)))
 
-    def test_nonexisting_dir(self):
+    def test_nonexisting_dir(self) -> None:
         """Testing the pipeline startup fails if the input directory does not
         exist"""
         with self.assertRaises(AssertionError):
@@ -220,7 +220,7 @@ class TestPipelineStartup(unittest.TestCase):
             )
             pipeline.setup_and_validate()
 
-    def test_if_excludefile_exists(self):
+    def test_if_excludefile_exists(self) -> None:
         """Testing if the exclude file exists and if there is none that the pipeline continues."""
         with self.assertRaises(ValueError):
             pipeline = juno_library.PipelineStartup(
@@ -230,7 +230,7 @@ class TestPipelineStartup(unittest.TestCase):
             )
             pipeline.setup_and_validate()
 
-    def test_emptydir(self):
+    def test_emptydir(self) -> None:
         """Testing the pipeline startup fails if the input directory does not
         have expected files"""
         pipeline = juno_library.PipelineStartup(
@@ -239,7 +239,7 @@ class TestPipelineStartup(unittest.TestCase):
         with self.assertRaises(ValueError):
             pipeline.setup_and_validate()
 
-    def test_incompletedir(self):
+    def test_incompletedir(self) -> None:
         """Testing the pipeline startup fails if the input directory is
         missing some of the fasta files for the fastq files"""
         pipeline = juno_library.PipelineStartup(
@@ -248,7 +248,7 @@ class TestPipelineStartup(unittest.TestCase):
         with self.assertRaises(KeyError):
             pipeline.setup_and_validate()
 
-    def test_correctdir_fastq(self):
+    def test_correctdir_fastq(self) -> None:
         """Testing the pipeline startup accepts fastq and fastq.gz files"""
 
         expected_output = {
@@ -267,7 +267,7 @@ class TestPipelineStartup(unittest.TestCase):
         pipeline.setup_and_validate()
         self.assertDictEqual(pipeline.sample_dict, expected_output)
 
-    def test_excludefile(self):
+    def test_excludefile(self) -> None:
         """Testing the pipeline startup accepts and works with exclusion file on fastq and fastq.gz files"""
         expected_output = {
             "sample2": {
@@ -289,7 +289,7 @@ class TestPipelineStartup(unittest.TestCase):
         pipeline.setup_and_validate()
         self.assertDictEqual(pipeline.sample_dict, expected_output)
 
-    def test_correctdir_fastq_with_L555_in_filename(self):
+    def test_correctdir_fastq_with_L555_in_filename(self) -> None:
         """Testing the pipeline startup accepts fastq and fastq.gz files"""
 
         input_dir = Path("fake_dir_wsamples")
@@ -314,7 +314,7 @@ class TestPipelineStartup(unittest.TestCase):
         pipeline.setup_and_validate()
         self.assertDictEqual(pipeline.sample_dict, expected_output)
 
-    def test_correctdir_fasta(self):
+    def test_correctdir_fasta(self) -> None:
         """Testing the pipeline startup accepts fasta"""
 
         expected_output = {
@@ -331,7 +331,7 @@ class TestPipelineStartup(unittest.TestCase):
         pipeline.setup_and_validate()
         self.assertDictEqual(pipeline.sample_dict, expected_output)
 
-    def test_correctdir_both(self):
+    def test_correctdir_both(self) -> None:
         """Testing the pipeline startup accepts both types"""
 
         expected_output = {
@@ -354,7 +354,7 @@ class TestPipelineStartup(unittest.TestCase):
         self.assertDictEqual(pipeline.sample_dict, expected_output)
         self.assertFalse(hasattr(pipeline, "juno_metadata"))
 
-    def test_files_smaller_than_minlen(self):
+    def test_files_smaller_than_minlen(self) -> None:
         """Testing the pipeline startup fails if you set a min_num_lines
         different than 0"""
 
@@ -364,7 +364,7 @@ class TestPipelineStartup(unittest.TestCase):
         with self.assertRaises(ValueError):
             pipeline.setup_and_validate()
 
-    def test_junodir_wnumericsamplenames(self):
+    def test_junodir_wnumericsamplenames(self) -> None:
         """Testing the pipeline startup converts numeric file names to
         string"""
 
@@ -394,7 +394,7 @@ class TestPipelineStartup(unittest.TestCase):
             pipeline.juno_metadata, expected_metadata, pipeline.juno_metadata
         )
 
-    def test_string_accepted_as_inputdir(self):
+    def test_string_accepted_as_inputdir(self) -> None:
         """Testing the pipeline startup accepts string (not only Path)
         as input"""
 
@@ -426,7 +426,7 @@ class TestPipelineStartup(unittest.TestCase):
             pipeline.juno_metadata, expected_metadata, pipeline.juno_metadata
         )
 
-    def test_fail_with_wrong_fastq_naming(self):
+    def test_fail_with_wrong_fastq_naming(self) -> None:
         """Testing the pipeline startup fails with wrong fastq naming (name
         contains _1_ in the sample name)"""
         pipeline = juno_library.PipelineStartup(
@@ -435,7 +435,7 @@ class TestPipelineStartup(unittest.TestCase):
         with self.assertRaises(KeyError):
             pipeline.setup_and_validate()
 
-    def test_fails_if_metadata_has_wrong_colnames(self):
+    def test_fails_if_metadata_has_wrong_colnames(self) -> None:
         """
         Testing the pipeline startup fails with wrong column names in metadata
         """
@@ -454,7 +454,7 @@ class TestRunSnakemake(unittest.TestCase):
     properly (not testing the run itself)"""
 
     @classmethod
-    def setUpClass(cls):
+    def setUpClass(cls) -> None:
         with open("user_parameters.yaml", "a") as file_:
             file_.write("fake_parameter: null")
         with open("fixed_parameters.yaml", "a") as file_:
@@ -467,14 +467,14 @@ class TestRunSnakemake(unittest.TestCase):
         Path("fake_input/sample_c.fasta").touch()
 
     @classmethod
-    def tearDownClass(cls):
+    def tearDownClass(cls) -> None:
         os.system("rm sample_sheet.yaml user_parameters.yaml fixed_parameters.yaml")
         os.system("rm -rf fake_output_dir")
         os.system("rm -rf fake_hpcoutput_dir")
         os.system("rm -rf fake_input")
         os.system("rm -rf exclusion_file.exclude")
 
-    def test_fake_dryrun_setup(self):
+    def test_fake_dryrun_setup(self) -> None:
         fake_run = juno_library.RunSnakemake(
             pipeline_name="fake_pipeline",
             pipeline_version="0.1",
@@ -498,7 +498,7 @@ class TestRunSnakemake(unittest.TestCase):
         self.assertFalse(audit_trail_path.joinpath("user_parameters.yaml").is_file())
         self.assertFalse(audit_trail_path.joinpath("exclusion_file.exclude").is_file())
 
-    def test_fake_run_setup(self):
+    def test_fake_run_setup(self) -> None:
         fake_run = juno_library.RunSnakemake(
             pipeline_name="fake_pipeline",
             pipeline_version="0.1",
@@ -554,7 +554,7 @@ class TestRunSnakemake(unittest.TestCase):
                         repo_url_in_audit_trail = True
             self.assertTrue(repo_url_in_audit_trail)
 
-    def test_pipeline(self):
+    def test_pipeline(self) -> None:
         output_dir = Path("fake_output_dir")
         os.system(f'echo "output_dir: {str(output_dir)}" > user_parameters.yaml')
         fake_run = juno_library.RunSnakemake(
@@ -584,7 +584,7 @@ class TestRunSnakemake(unittest.TestCase):
         not Path("/data/BioGrid/hernanda/").exists(),
         "Skipped if not in RIVM HPC cluster",
     )
-    def test_pipeline_in_hpcRIVM(self):
+    def test_pipeline_in_hpcRIVM(self) -> None:
         output_dir = Path("fake_hpcoutput_dir")
         os.system(f'echo "output_dir: {str(output_dir)}" > user_parameters.yaml')
         fake_run = juno_library.RunSnakemake(
@@ -615,7 +615,7 @@ class TestRunSnakemake(unittest.TestCase):
 class TestKwargsClass(unittest.TestCase):
     """Testing Argparse action to store kwargs (to be passed to Snakemake)"""
 
-    def test_kwargs_are_parsed(self):
+    def test_kwargs_are_parsed(self) -> None:
         parser = argparse.ArgumentParser(description="Testing parser")
         parser.add_argument(
             "--snakemake-args",

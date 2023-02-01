@@ -7,7 +7,7 @@ import sys
 import juno_library.juno_info as juno_info
 
 
-def get_args():
+def get_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Juno pipeline. Automated pipeline for bacterial genomics."
     )
@@ -170,7 +170,7 @@ def get_args():
     return args
 
 
-def main():
+def main() -> int:
     """Main entry point."""
     print(f"{juno_info.__package_name__}")
     print(f"{juno_info.__description__}")
@@ -180,6 +180,7 @@ def main():
     print(f"Contact email: {juno_info.__email__}")
     args = get_args()
     print(args)
+    return 0
 
 
 if __name__ == "__main__":
