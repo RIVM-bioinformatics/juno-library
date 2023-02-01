@@ -4,7 +4,7 @@ import argparse
 import pathlib
 import sys
 
-import juno_library.juno_info as juno_info
+import juno_library.version as juno_info
 
 
 def get_args() -> argparse.Namespace:

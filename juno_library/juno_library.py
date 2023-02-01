@@ -18,7 +18,7 @@ from pandas import read_csv
 from snakemake import snakemake
 
 from juno_library.helper_functions import *
-from juno_library.juno_info import *
+from juno_library.version import *
 from typing import Sequence, Any
 
 
