@@ -1,19 +1,23 @@
 from __future__ import print_function
 
-from base_juno_pipeline import juno_info
+import juno_library.juno_info as juno_info
 import sys
 
-if sys.version_info < (3, 7): 
-    print('At least Python 3.7 is required for the Juno pipelines to work.\n', 
-            file=sys.stderr)
+if sys.version_info < (3, 10):
+    print(
+        "At least Python 3.10 is required for the Juno pipelines to work.\n",
+        file=sys.stderr,
+    )
     exit(1)
 
 
 try:
     from setuptools import setup, find_packages
 except ImportError:
-    print('Please install setuptools before installing the base_juno_pipeline library.\n', 
-    file=sys.stderr)
+    print(
+        "Please install setuptools before installing juno_library.\n",
+        file=sys.stderr,
+    )
     exit(1)
 
 
@@ -25,24 +29,20 @@ setup(
     description=juno_info.__description__,
     zip_safe=False,
     license=juno_info.__license__,
-    packages=find_packages(include=['base_juno_pipeline', 'base_juno_pipeline.*']),
-    scripts=['base_juno_pipeline/base_juno_pipeline.py'],
-    package_data={'base_juno_pipeline': ['envs/*']},
+    packages=find_packages(),
+    scripts=["juno_library/run.py"],
+    package_data={"juno_library": ["envs/*"]},
     install_requires=[
-        'dask',
-        'mamba',
-        'numpy',
-        'pandas',
-        'pip>=19.2.0',
-        'snakemake>=6.1.0',
-        'unittest2',
-        'xlrd==1.2.0',
-        'pyyaml'
+        "pandas>=1.5",
+        "drmaa>=0.7.9",
+        "snakemake>=7.18",
+        "xlrd>=2.0",
+        "pip>=22.3",
+        "pyyaml>=6.0",
+        "types-PyYAML>=6.0",
+        "numpy>=1.23",
+        "dask>=2022.11.0",
     ],
-    # entry_points={
-    #     "console_scripts": [
-    #         "juno_pipeline = base_juno_pipeline:main"
-    #     ]
-    # },
-    include_package_data=True
+    entry_points={"console_scripts": ["juno_pipeline = juno_library.run:main"]},
+    include_package_data=True,
 )

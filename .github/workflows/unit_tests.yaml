@@ -1,0 +1,32 @@
+name: Unit tests
+
+on: 
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ${{ matrix.config.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - {os: macOS-latest}
+          - {os: ubuntu-18.04}
+          - {os: ubuntu-latest}
+    name: Testing main classes ${{ matrix.config.os }}
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Conda setup
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+          environment-file: juno_library/envs/juno_library.yaml 
+          activate-environment: juno_library
+      - name: Conda list
+        shell: bash -l {0}
+        run: conda list
+      - name: Unit tests
+        shell: bash -l {0}
+        run: python tests/library_tests.py

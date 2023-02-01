@@ -1,0 +1,25 @@
+name: Code quality checks
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ${{ matrix.config.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        config: 
+          - {os: macOS-latest}
+          - {os: ubuntu-18.04}
+          - {os: ubuntu-latest}
+    name: Checking with mypy and black ${{ matrix.config.os }}
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      - run: pip install "black<23" mypy snakefmt types-setuptools types-PyYAML pandas-stubs types-openpyxl
+      - run: black --diff --check .
+      - run: snakefmt --check .
+      - run: mypy --strict .

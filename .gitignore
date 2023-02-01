@@ -1,9 +1,11 @@
 # Python 
 __pycache__/
-base_juno_pipeline/__pycache__/
+*/__pycache__/
 .snakemake/
 *.egg-info/
 .vscode/
+build/
+.mypy_cache/
 
 # Conda
 conda

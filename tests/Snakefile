@@ -1,26 +1,31 @@
-SAMPLES = ['a', 'b', 'c']
+SAMPLES = ["a", "b", "c"]
 
-output_dir = config['output_dir']
+output_dir = config["output_dir"]
+
 
 rule all:
     input:
         output_dir + "/fake_result.txt",
-        expand(output_dir + "/fake_file_{sample}.txt", sample=SAMPLES)
+        expand(output_dir + "/fake_file_{sample}.txt", sample=SAMPLES),
+
 
 rule first_rule:
     output:
-        output_dir + "/fake_file_{sample}.txt"
+        output_dir + "/fake_file_{sample}.txt",
     threads: 1
-    resources: mem_gb=4
+    resources:
+        mem_gb=4,
     shell:
         "touch {output}"
 
+
 rule second_rule:
     input:
-        expand(output_dir + "/fake_file_{sample}.txt", sample=SAMPLES)
+        expand(output_dir + "/fake_file_{sample}.txt", sample=SAMPLES),
     output:
-        output_dir + "/fake_result.txt"
+        output_dir + "/fake_result.txt",
     threads: 1
-    resources: mem_gb=4
+    resources:
+        mem_gb=4,
     shell:
         "touch {output}"
