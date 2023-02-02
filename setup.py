@@ -31,7 +31,7 @@ setup(
     license=juno_info.__license__,
     packages=find_packages(),
     scripts=["juno_library/run.py"],
-    package_data={"juno_library": ["envs/*"]},
+    package_data={"juno_library": ["envs/*", "py.typed"]},
     install_requires=[
         "pandas>=1.5",
         "drmaa>=0.7.9",
