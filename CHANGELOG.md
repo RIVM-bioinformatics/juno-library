@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.0](https://github.com/RIVM-bioinformatics/juno-library/compare/v1.0.0...v1.1.0) (2023-02-02)
+
+
+### Features
+
+* Add py.typed ([6bfc81b](https://github.com/RIVM-bioinformatics/juno-library/commit/6bfc81be69a538c9bcc8dcc4f2a4c55cc56d96b6))
+
 ## [1.0.0](https://github.com/RIVM-bioinformatics/juno-library/compare/v1.0.0...v1.0.0) (2023-02-02)
 
 
