@@ -40,11 +40,11 @@ class PipelineStartup:
 
     def __post_init__(self) -> None:
         # Convert str to Path if needed
-        self.input_dir = pathlib.Path(self.input_dir)
+        self.input_dir = pathlib.Path(self.input_dir).absolute()
 
         # Check if an exclusion file is given
         if self.exclusion_file:
-            self.exclusion_file = pathlib.Path(self.exclusion_file)
+            self.exclusion_file = pathlib.Path(self.exclusion_file).absolute()
 
         # Set minimum number of lines e.g. fastq's should have
         self.min_num_lines = int(self.min_num_lines)
@@ -258,7 +258,7 @@ class PipelineStartup:
                 "identify_species", "top1_species_multireport.csv"
             )
         else:
-            juno_species_file = Path(filepath)
+            juno_species_file = Path(filepath).absolute()
         if juno_species_file.exists():
             juno_metadata = read_csv(juno_species_file, dtype={"sample": str})
             assert all(
@@ -268,6 +268,8 @@ class PipelineStartup:
             )
             juno_metadata.set_index("sample", inplace=True)
             self.juno_metadata = juno_metadata.to_dict(orient="index")
+        else:
+            juno_metadata=None
 
 
 @dataclass(kw_only=True)
@@ -283,9 +285,9 @@ class RunSnakemake:
     output_dir: Path
     workdir: Path
     exclusion_file: None | Path = None
-    sample_sheet: Path = pathlib.Path("config/sample_sheet.yaml")
-    user_parameters: Path = pathlib.Path("config/user_parameters.yaml")
-    fixed_parameters: Path = pathlib.Path("config/pipeline_parameters.yaml")
+    sample_sheet: Path = pathlib.Path("config/sample_sheet.yaml").absolute()
+    user_parameters: Path = pathlib.Path("config/user_parameters.yaml").absolute()
+    fixed_parameters: Path = pathlib.Path("config/pipeline_parameters.yaml").absolute()
     snakefile: str = "Snakefile"
     cores: int = 300
     local: bool = False
@@ -312,8 +314,8 @@ class RunSnakemake:
         """Constructor"""
         self.kwargs = kwargs
         self.path_to_audit = self.output_dir.joinpath("audit_trail")
-        self.output_dir = Path(self.output_dir)
-        self.workdir = Path(self.workdir)
+        self.output_dir = Path(self.output_dir).absolute()
+        self.workdir = Path(self.workdir).absolute()
         self.fixed_parameters = Path(self.fixed_parameters)
         self.snakemake_report = str(
             self.path_to_audit.joinpath(self.name_snakemake_report)
