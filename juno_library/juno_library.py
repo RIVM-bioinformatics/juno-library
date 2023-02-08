@@ -269,7 +269,7 @@ class PipelineStartup:
             juno_metadata.set_index("sample", inplace=True)
             self.juno_metadata = juno_metadata.to_dict(orient="index")
         else:
-            juno_metadata=None
+            juno_metadata = None
 
 
 @dataclass(kw_only=True)
