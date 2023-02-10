@@ -40,11 +40,11 @@ class PipelineStartup:
 
     def __post_init__(self) -> None:
         # Convert str to Path if needed
-        self.input_dir = pathlib.Path(self.input_dir).resolve()()
+        self.input_dir = pathlib.Path(self.input_dir).resolve()
 
         # Check if an exclusion file is given
         if self.exclusion_file:
-            self.exclusion_file = pathlib.Path(self.exclusion_file).resolve()()
+            self.exclusion_file = pathlib.Path(self.exclusion_file).resolve()
 
         # Set minimum number of lines e.g. fastq's should have
         self.min_num_lines = int(self.min_num_lines)
