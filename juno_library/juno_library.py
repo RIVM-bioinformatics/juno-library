@@ -190,7 +190,8 @@ class PipelineStartup:
 
     def __exclude_samples(self) -> None:
         """Function to exclude low quality samples that are specified by the user in a .txt file, given in the argument
-        parser with the option -ex or --exclude. Returns a sample dict as made in the function make_sample_dict"""
+        parser with the option -ex or --exclude. Returns a sample dict as made in the function make_sample_dict
+        """
         if self.exclusion_file:
             if self.exclusion_file.is_file() and str(self.exclusion_file).endswith(
                 ".exclude"
