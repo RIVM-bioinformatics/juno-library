@@ -22,6 +22,7 @@ jobs:
       - name: Conda setup
         uses: conda-incubator/setup-miniconda@v2
         with:
+          mamba-version: "0.27"
           environment-file: juno_library/envs/juno_library.yaml 
           activate-environment: juno_library
       - name: Conda list
