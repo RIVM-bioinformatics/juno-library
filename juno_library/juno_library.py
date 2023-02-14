@@ -19,7 +19,7 @@ from snakemake import snakemake
 
 from juno_library.helper_functions import *
 from juno_library.version import *
-from typing import Sequence, Any
+from typing import Any
 
 
 @dataclass(kw_only=True)
@@ -36,106 +36,71 @@ class PipelineStartup:
     input_dir: Path
     input_type: str = "both"
     exclusion_file: None | Path = None
+    excluded_samples: set[str] = field(default_factory=set)
     min_num_lines: int = 0
+    fasta_dir: None | Path = None
+    fastq_dir: None | Path = None
 
     def __post_init__(self) -> None:
         # Convert str to Path if needed
         self.input_dir = pathlib.Path(self.input_dir).resolve()
 
-        # Check if an exclusion file is given
-        if self.exclusion_file:
-            self.exclusion_file = pathlib.Path(self.exclusion_file).resolve()
-
-        # Set minimum number of lines e.g. fastq's should have
-        self.min_num_lines = int(self.min_num_lines)
-
-        # Check if the input directory is created by juno-assembly and properly set up subdirs if so
-        self.input_dir_is_juno_assembly_output = (
-            self.input_dir.joinpath("clean_fastq").exists()
-            and self.input_dir.joinpath("de_novo_assembly_filtered").exists()
-        )
-        if self.input_dir_is_juno_assembly_output:
-            self.__subdirs_ = {
-                "fastq": self.input_dir.joinpath("clean_fastq"),
-                "fasta": self.input_dir.joinpath("de_novo_assembly_filtered"),
-            }
-        else:
-            self.__subdirs_ = {"fastq": self.input_dir, "fasta": self.input_dir}
-
-        # Validate input files
-        assert (
-            self.input_dir.is_dir()
-        ), f"The provided input directory ({str(self.input_dir)}) does not exist. Please provide an existing directory"
         assert self.input_type in [
             "fastq",
             "fasta",
             "both",
         ], "input_type to be checked can only be 'fastq', 'fasta' or 'both'"
-        if self.exclusion_file is not None:
+
+        # Check if an exclusion file is given
+        if self.exclusion_file:
+            self.exclusion_file = self.exclusion_file.resolve()
+            self.__set_exluded_samples()
             assert self.exclusion_file.is_file()
 
-    def setup_and_validate(self) -> None:
-        """
-        This function performs calls other functions in the class to complete
-        all the necessary steps needed for a robust and well documented Juno
-        pipeline. For instance, validating directories, making sample_dict
-        (from which a sample_sheet can be made), etc. This is the main (and
-        often only) function that is usually needed to run a Juno pipeline
-        """
-        self.supported_extensions = {
-            "fastq": (".fastq", ".fastq.gz", ".fq", ".fq.gz"),
-            "fasta": (".fasta"),
-        }
+        # Validate input files
+        assert (
+            self.input_dir.is_dir()
+        ), f"The provided input directory ({str(self.input_dir)}) does not exist. Please provide an existing directory"
 
-        self.__validate_input_dir()
-        print("Making a list of samples to be processed in this pipeline run...")
-        print("Checking if samples need to be Excluded")
-        self.make_sample_dict()
-        if self.exclusion_file is not None:
-            print(message_formatter(f"Found exclusion file {self.exclusion_file}"))
-            self.__exclude_samples()
+        # Check if the input directory is created by juno-assembly and properly set up sample_dict if so
+        print(
+            message_formatter(
+                "Making a list of samples to be processed in this pipeline run..."
+            )
+        )
+        self.__build_sample_dict()
         print(
             message_formatter(
                 "Validating that all expected input files per sample are present in the input directory..."
             )
         )
-        self.validate_sample_dict()
+        self.__validate_sample_dict()
 
-    def __validate_input_subdir(
-        self, input_subdir: Path, extension: str | Sequence[str] = "fasta"
-    ) -> None:
-        """Function to validate whether the subdirectories (if applicable)
-        or the input directory have files that end with the expected extension"""
-        for item in input_subdir.iterdir():
-            if item.is_file() and str(item).endswith(tuple(extension)):
-                return
-        raise ValueError(
-            error_formatter(
-                f"Input directory ({self.input_dir}) does not contain files that end with one of the expected extensions {extension}."
-            )
+    def __build_sample_dict(self) -> None:
+        """
+        Looks for samples in the input_dir and sets self.sample_dict accordingly.
+        It also checks whether the input_dir is an output dir if juno_assembly.
+        """
+        self.sample_dict: dict[str, dict[str, str]] = {}
+        self.input_dir_is_juno_assembly_output = (
+            self.input_dir.joinpath("clean_fastq").exists()
+            and self.input_dir.joinpath("de_novo_assembly_filtered").exists()
         )
-
-    def __validate_input_dir(self) -> None:
-        """
-        Function to check that input directory is indeed an existing directory
-        that contains files with the expected extension (fastq or fasta)
-        """
-        if self.input_type == "both":
-            self.__validate_input_subdir(
-                self.__subdirs_["fastq"], self.supported_extensions["fastq"]
-            )
-            self.__validate_input_subdir(
-                self.__subdirs_["fasta"], self.supported_extensions["fasta"]
+        if self.input_dir_is_juno_assembly_output:
+            self.__enlist_fastq_samples(self.input_dir.joinpath("clean_fastq"))
+            self.__enlist_fasta_samples(
+                self.input_dir.joinpath("de_novo_assembly_filtered")
             )
         else:
-            self.__validate_input_subdir(
-                self.__subdirs_[self.input_type],
-                self.supported_extensions[self.input_type],
-            )
+            if self.input_type in ["fastq", "both"]:
+                self.__enlist_fastq_samples(self.input_dir)
+            if self.input_type in ["fasta", "both"]:
+                self.__enlist_fasta_samples(self.input_dir)
 
-    def __enlist_fastq_samples(self) -> dict[str, dict[str, str]]:
+    def __enlist_fastq_samples(self, dir: Path) -> None:
         """
         Function to enlist the fastq files found in the input directory.
+        File with too little lines are silently ignored.
         Returns a dictionary with the form:
         {sample: {R1: fastq_file1, R2: fastq_file2}}
         """
@@ -146,99 +111,80 @@ class PipelineStartup:
         pattern = re.compile(
             r"(.*?)(?:_S\d+_|_S\d+.|_|\.)(?:_L555_)?(?:p)?R?(1|2)(?:_.*\.|\..*\.|\.)f(ast)?q(\.gz)?"
         )
-        samples: dict[str, dict[str, str]] = {}
-        for file_ in self.__subdirs_["fastq"].iterdir():
+        for file_ in dir.iterdir():
             if validate_file_has_min_lines(file_, self.min_num_lines):
-                match = pattern.fullmatch(file_.name)
-                if match:
-                    sample = samples.setdefault(match.group(1), {})
-                    sample[f"R{match.group(2)}"] = str(file_.resolve())
-        return samples
+                if match := pattern.fullmatch(file_.name):
+                    sample_name = match.group(1)
+                    read_group = match.group(2)
+                    if sample_name in self.excluded_samples:
+                        continue
+                    sample = self.sample_dict.setdefault(match.group(1), {})
+                    sample[f"R{read_group}"] = str(file_.resolve())
 
-    def __enlist_fasta_samples(self) -> dict[str, dict[str, str]]:
+    def __enlist_fasta_samples(self, dir: Path) -> None:
         """
         Function to enlist the fasta files found in the input
         directory. Returns a dictionary with the form
         {sample: {assembly: fasta_file}}
         """
         pattern = re.compile("(.*?).fasta")
-        samples: dict[str, dict[str, str]] = {}
-        for file_ in self.__subdirs_["fasta"].iterdir():
+        for file_ in dir.iterdir():
             if validate_file_has_min_lines(file_, self.min_num_lines):
-                match = pattern.fullmatch(file_.name)
-                if match:
-                    sample = samples.setdefault(match.group(1), {})
+                if match := pattern.fullmatch(file_.name):
+                    sample_name = match.group(1)
+                    if sample_name in self.excluded_samples:
+                        continue
+                    sample = self.sample_dict.setdefault(sample_name, {})
                     sample["assembly"] = str(file_.resolve())
-        return samples
 
-    def make_sample_dict(self) -> dict[str, dict[str, str]]:
-        """
-        Function to make a sample sheet from the input directory (expecting
-        either fastq or fasta files as input)
-        """
-        if self.input_type == "fastq":
-            samples = self.__enlist_fastq_samples()
-        elif self.input_type == "fasta":
-            samples = self.__enlist_fasta_samples()
-        else:
-            samples = self.__enlist_fastq_samples()
-            samples_fasta = self.__enlist_fasta_samples()
-            for k in samples.keys():
-                samples[k]["assembly"] = samples_fasta[k]["assembly"]
-        self.sample_dict = samples
-        return samples
-
-    def __exclude_samples(self) -> None:
+    def __set_exluded_samples(self) -> None:
         """Function to exclude low quality samples that are specified by the user in a .txt file, given in the argument
         parser with the option -ex or --exclude. Returns a sample dict as made in the function make_sample_dict
         """
         if self.exclusion_file:
-            if self.exclusion_file.is_file() and str(self.exclusion_file).endswith(
+            if not self.exclusion_file.is_file() and str(self.exclusion_file).endswith(
                 ".exclude"
             ):
-                with open(self.exclusion_file, "r") as exclude_file_open:
-                    exclude_samples = exclude_file_open.readlines()
-                    exclude_samples_stripped = [
-                        x.replace("\n", "") for x in exclude_samples
-                    ]
-                    self.sample_dict = {
-                        sample: self.sample_dict[sample]
-                        for sample in self.sample_dict
-                        if sample not in exclude_samples_stripped
-                    }
-            else:
                 print(
                     error_formatter(
                         f"Exclusion file:\n\t{self.exclusion_file}\ndoes not exist or does not end with '.exclude'. It is ignored."
                     )
                 )
+            with open(self.exclusion_file, "r") as exclude_file_open:
+                exclude_samples = exclude_file_open.readlines()
+                self.excluded_samples = {x.replace("\n", "") for x in exclude_samples}
 
-    def validate_sample_dict(self) -> bool:
+    def __validate_sample_dict(self) -> bool:
         if not self.sample_dict:
             raise ValueError(
                 error_formatter(
                     f"The input directory ({self.input_dir}) does not contain any files with the expected format/naming. Also check that your files have an expected size (min. number of lines expected: {self.min_num_lines})"
                 )
             )
-        if self.input_type == "fastq" or self.input_type == "both":
+        errors = []
+        if self.input_type in ["fastq", "both"]:
             for sample in self.sample_dict:
                 R1_present = "R1" in self.sample_dict[sample].keys()
                 R2_present = "R2" in self.sample_dict[sample].keys()
                 if not R1_present or not R2_present:
-                    raise KeyError(
-                        error_formatter(
+                    errors.append(
+                        KeyError(
                             f"One of the paired fastq files (R1 or R2) are missing for sample {sample}. This pipeline ONLY ACCEPTS PAIRED READS. If you are sure you have complete paired-end reads, make sure to NOT USE _1 and _2 within your file names unless it is to differentiate paired fastq files or any unsupported character (Supported: letters, numbers, underscores)."
                         )
                     )
-        if self.input_type == "fasta" or self.input_type == "both":
+        if self.input_type in ["fasta", "both"]:
             for sample in self.sample_dict:
                 assembly_present = self.sample_dict[sample].keys()
                 if "assembly" not in assembly_present:
-                    raise KeyError(
-                        error_formatter(
-                            f"The assembly is mising for sample {sample}. This pipeline expects an assembly per sample."
+                    errors.append(
+                        KeyError(
+                            f"The assembly is missing for sample {sample}. This pipeline expects an assembly per sample."
                         )
                     )
+        if errors:
+            if len(errors) == 1:
+                raise errors[0]
+            raise KeyError(errors)
         return True
 
     def get_metadata_from_csv_file(
