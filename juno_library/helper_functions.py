@@ -2,6 +2,8 @@ import argparse
 import subprocess
 import pathlib
 from typing import Sequence, Any
+import inspect
+import snakemake
 
 # Helper functions for text manipulation
 
@@ -148,6 +150,7 @@ class SnakemakeKwargsAction(argparse.Action):
         option_string: str | None = None,
     ) -> None:
         keyword_dict: dict[str, Sequence[str] | str] = {}
+        allowed_snakemake_args = inspect.getfullargspec(snakemake.snakemake).args
         if not values:
             msg = f"No arguments and values were given to --snakemake-args. Did you try to pass an extra argument to Snakemkake? Make sure that you used the API format and that you use the argument int he form: arg=value."
             raise argparse.ArgumentTypeError(error_formatter(msg))
@@ -156,6 +159,12 @@ class SnakemakeKwargsAction(argparse.Action):
             if len(pieces) == 2:
                 value = pieces[1]
                 if value.startswith("["):
+                    if pieces[0] not in allowed_snakemake_args:
+                        raise argparse.ArgumentTypeError(
+                            error_formatter(
+                                f"The argument {pieces[0]} is not specified in the snakemake python API. Check it for typos or consult the api for the used snakemake version: {snakemake.__version__}"
+                            )
+                        )
                     keyword_dict[pieces[0]] = (
                         value.replace("[", "").replace("]", "").split(",")
                     )

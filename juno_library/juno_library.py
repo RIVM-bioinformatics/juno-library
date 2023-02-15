@@ -456,7 +456,7 @@ class RunSnakemake:
                 )
             )
 
-        pipeline_run_successful: bool = snakemake(
+        pipeline_run_successful: bool = snakemake.snakemake(
             self.snakefile,
             workdir=self.workdir,
             configfiles=[self.user_parameters, self.fixed_parameters],
@@ -497,7 +497,7 @@ class RunSnakemake:
         # used instead of the original sample sheet. This is to avoid that if
         # a new run is started while there is one running, the correct sample
         # sheet for this new run is used.
-        snakemake_report_successful: bool = snakemake(
+        snakemake_report_successful: bool = snakemake.snakemake(
             self.snakefile,
             workdir=self.workdir,
             configfiles=[self.user_parameters, self.fixed_parameters],
