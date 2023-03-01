@@ -42,6 +42,10 @@ class PipelineStartup:
     fastq_dir: None | Path = None
 
     def __post_init__(self) -> None:
+        """
+        Validates the input directory and builds a sample_dict.
+        This function is not automatically run if the class is inherited.
+        """
         # Convert str to Path if needed
         self.input_dir = pathlib.Path(self.input_dir).resolve()
 
