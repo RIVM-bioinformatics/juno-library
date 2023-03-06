@@ -594,7 +594,6 @@ class TestRunSnakemake(unittest.TestCase):
             user_parameters=Path("user_parameters.yaml"),
             fixed_parameters=Path("fixed_parameters.yaml"),
             snakefile="tests/Snakefile",
-            name_snakemake_report="fake_snakemake_report.html",
             local=True,
         )
         audit_trail_path = output_dir.joinpath("audit_trail")
@@ -603,9 +602,7 @@ class TestRunSnakemake(unittest.TestCase):
         self.assertTrue(successful_run)
         self.assertTrue(output_dir.joinpath("fake_result.txt").exists())
         self.assertTrue(successful_report)
-        self.assertTrue(
-            audit_trail_path.joinpath("fake_snakemake_report.html").exists()
-        )
+        self.assertTrue(audit_trail_path.joinpath("snakemake_report.html").exists())
 
     @unittest.skipIf(
         not Path("/data/BioGrid/hernanda/").exists(),
@@ -624,7 +621,6 @@ class TestRunSnakemake(unittest.TestCase):
             user_parameters=Path("user_parameters.yaml"),
             fixed_parameters=Path("fixed_parameters.yaml"),
             snakefile="tests/Snakefile",
-            name_snakemake_report="fake_snakemake_report.html",
             local=False,
             time_limit=200,
         )

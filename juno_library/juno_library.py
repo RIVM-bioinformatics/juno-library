@@ -254,37 +254,47 @@ class RunSnakemake:
     user_parameters: Path = pathlib.Path("config/user_parameters.yaml").resolve()
     fixed_parameters: Path = pathlib.Path("config/pipeline_parameters.yaml").resolve()
     snakefile: str = "Snakefile"
-    cores: int = 300
+    unlock: bool = False
+    dryrun: bool = False
     local: bool = False
     queue: str = "bio"
-    unlock: bool = False
-    rerunincomplete: bool = True
-    dryrun: bool = False
-    useconda: bool = True
-    conda_prefix: Optional[str] = None
-    usesingularity: bool = True
-    singularityargs: str = ""
-    singularity_prefix: Optional[str] = None
-    restarttimes: int = 0
-    latency_wait: int = 60
     time_limit: int = 60
-    name_snakemake_report: str = "snakemake_report.html"
-    conda_frontend: str = "mamba"
-    unique_id: UUID = uuid4()
-    date_and_time = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
-    hostname = str(subprocess.check_output(["hostname"]).strip())
-    kwargs: dict[str, Any] = field(default_factory=dict)
-
-    def __post_init__(self, **kwargs: dict[str, Any]) -> None:
-        """Constructor"""
-        self.kwargs = kwargs
-        self.path_to_audit = self.output_dir.joinpath("audit_trail")
-        self.output_dir = Path(self.output_dir).resolve()
-        self.workdir = Path(self.workdir).resolve()
-        self.fixed_parameters = Path(self.fixed_parameters)
-        self.snakemake_report = str(
-            self.path_to_audit.joinpath(self.name_snakemake_report)
+    snakemake_args: dict[str, Any] = field(
+        default_factory=lambda: dict(
+            cores=300,
+            nodes=300,
+            force_incomplete=True,
+            use_conda=True,
+            conda_prefix=None,
+            use_singularity=True,
+            singularity_args="",
+            singularity_prefix=None,
+            restart_times=0,
+            latency_wait=60,
+            conda_frontend="mamba",
+            keepgoing=True,
+            printshellcmds=True,
         )
+    )
+    # kwargs: dict[str, Any] = field(default_factory=dict)
+
+    def __post_init__(
+        self, extra_snakemake_args: Optional[dict[str, Any]] = None
+    ) -> None:
+        """Constructor"""
+        self.path_to_audit = self.output_dir.joinpath("audit_trail").resolve()
+        self.output_dir = self.output_dir.resolve()
+        self.workdir = self.workdir.resolve()
+        self.snakemake_report = self.path_to_audit.joinpath("snakemake_report.html")
+
+        # Setup some audit trail params
+        self.date_and_time = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
+        self.unique_id: UUID = uuid4()
+        self.hostname = str(subprocess.check_output(["hostname"]).strip())
+
+        if extra_snakemake_args:
+            for (key, val) in extra_snakemake_args.items():
+                self.snakemake_args[key] = val
 
     def __copy_exclusion_file_to_audit_path(self) -> None:
         """
@@ -425,27 +435,14 @@ class RunSnakemake:
 
         pipeline_run_successful: bool = snakemake.snakemake(
             self.snakefile,
-            workdir=self.workdir,
-            configfiles=[self.user_parameters, self.fixed_parameters],
+            workdir=str(self.workdir),
+            configfiles=[str(self.user_parameters), str(self.fixed_parameters)],
             config={"sample_sheet": str(self.sample_sheet)},
-            cores=self.cores,
-            nodes=self.cores,
             cluster=cluster,
             jobname=self.pipeline_name + "_{name}.jobid{jobid}",
-            use_conda=self.useconda,
-            conda_frontend=self.conda_frontend,
-            conda_prefix=self.conda_prefix,
-            use_singularity=self.usesingularity,
-            singularity_args=self.singularityargs,
-            singularity_prefix=self.singularity_prefix,
-            keepgoing=True,
-            printshellcmds=True,
-            force_incomplete=self.rerunincomplete,
-            restart_times=self.restarttimes,
-            latency_wait=self.latency_wait,
             unlock=self.unlock,
             dryrun=self.dryrun,
-            **self.kwargs,
+            **self.snakemake_args,
         )
         assert pipeline_run_successful, error_formatter(
             f"An error occured while running the {self.pipeline_name} pipeline."
@@ -466,20 +463,19 @@ class RunSnakemake:
         # sheet for this new run is used.
         snakemake_report_successful: bool = snakemake.snakemake(
             self.snakefile,
-            workdir=self.workdir,
-            configfiles=[self.user_parameters, self.fixed_parameters],
+            workdir=str(self.workdir),
+            configfiles=[str(self.user_parameters), str(self.fixed_parameters)],
             config={
                 "sample_sheet": str(self.path_to_audit.joinpath("sample_sheet.yaml"))
             },
             cores=1,
             nodes=1,
-            use_conda=self.useconda,
-            conda_frontend=self.conda_frontend,
-            conda_prefix=self.conda_prefix,
-            use_singularity=self.usesingularity,
-            singularity_args=self.singularityargs,
-            singularity_prefix=self.singularity_prefix,
-            report=self.snakemake_report,
-            **self.kwargs,
+            report=str(self.snakemake_report),
+            **{
+                k: self.snakemake_args[k]
+                for k in self.snakemake_args
+                if k
+                not in ["cores", "report", "workdir", "configfiles", "config", "nodes"]
+            },
         )
         return snakemake_report_successful
