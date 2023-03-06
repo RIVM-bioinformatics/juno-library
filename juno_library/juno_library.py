@@ -19,7 +19,7 @@ from snakemake import snakemake
 
 from juno_library.helper_functions import *
 from juno_library.version import *
-from typing import Any
+from typing import Any, Optional
 
 
 @dataclass(kw_only=True)
@@ -35,11 +35,11 @@ class PipelineStartup:
 
     input_dir: Path
     input_type: str = "both"
-    exclusion_file: None | Path = None
+    exclusion_file: Optional[Path] = None
     excluded_samples: set[str] = field(default_factory=set)
     min_num_lines: int = 0
-    fasta_dir: None | Path = None
-    fastq_dir: None | Path = None
+    fasta_dir: Optional[Path] = None
+    fastq_dir: Optional[Path] = None
 
     def __post_init__(self) -> None:
         """
@@ -105,7 +105,7 @@ class PipelineStartup:
         """
         Function to enlist the fastq files found in the input directory.
         File with too little lines are silently ignored.
-        Returns a dictionary with the form:
+        Adds or updates self.sample_dict with the form:
         {sample: {R1: fastq_file1, R2: fastq_file2}}
         """
         # Regex to detect different sample names in de fastq file names
@@ -128,7 +128,7 @@ class PipelineStartup:
     def __enlist_fasta_samples(self, dir: Path) -> None:
         """
         Function to enlist the fasta files found in the input
-        directory. Returns a dictionary with the form
+        directory. Adds or updates self.sample_dict with the form:
         {sample: {assembly: fasta_file}}
         """
         pattern = re.compile("(.*?).fasta")
@@ -159,6 +159,18 @@ class PipelineStartup:
                 self.excluded_samples = {x.replace("\n", "") for x in exclude_samples}
 
     def __validate_sample_dict(self) -> bool:
+        """Validates self.sample_dict
+
+        Checks whether for every sample found there is a fastq and/or fasta.
+
+        Raises:
+            ValueError: if self.sample_dict does not exist
+            errors: For each sample that can not be found an error is raised
+            KeyError: Containing all errors that are found
+
+        Returns:
+            bool: True if everythin is fine
+        """
         if not self.sample_dict:
             raise ValueError(
                 error_formatter(
@@ -193,12 +205,14 @@ class PipelineStartup:
 
     def get_metadata_from_csv_file(
         self,
-        filepath: Path | None = None,
+        filepath: Optional[Path] = None,
         expected_colnames: list[str] = ["sample", "genus"],
     ) -> None:
-        """
-        Function to get a dictionary with the sample, genus and species per
-        sample
+        """Expects a csv with metadata per sample and sets self.juno_metadata dict
+
+        Args:
+            filepath (Optional[Path], optional): The location of the csv. Defaults to None.
+            expected_colnames (list[str], optional): The expected header of the csv. Defaults to ["sample", "genus"].
         """
         if filepath is None:
             # Only when the input_dir comes from the Juno-assembly pipeline
@@ -235,7 +249,7 @@ class RunSnakemake:
     pipeline_version: str
     output_dir: Path
     workdir: Path
-    exclusion_file: None | Path = None
+    exclusion_file: Optional[Path] = None
     sample_sheet: Path = pathlib.Path("config/sample_sheet.yaml").resolve()
     user_parameters: Path = pathlib.Path("config/user_parameters.yaml").resolve()
     fixed_parameters: Path = pathlib.Path("config/pipeline_parameters.yaml").resolve()
@@ -247,10 +261,10 @@ class RunSnakemake:
     rerunincomplete: bool = True
     dryrun: bool = False
     useconda: bool = True
-    conda_prefix: None | str = None
+    conda_prefix: Optional[str] = None
     usesingularity: bool = True
     singularityargs: str = ""
-    singularity_prefix: str | None = None
+    singularity_prefix: Optional[str] = None
     restarttimes: int = 0
     latency_wait: int = 60
     time_limit: int = 60
@@ -261,7 +275,7 @@ class RunSnakemake:
     hostname = str(subprocess.check_output(["hostname"]).strip())
     kwargs: dict[str, Any] = field(default_factory=dict)
 
-    def __post_init__(self, **kwargs: Any) -> None:
+    def __post_init__(self, **kwargs: dict[str, Any]) -> None:
         """Constructor"""
         self.kwargs = kwargs
         self.path_to_audit = self.output_dir.joinpath("audit_trail")

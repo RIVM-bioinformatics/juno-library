@@ -1,7 +1,7 @@
 import argparse
 import subprocess
 import pathlib
-from typing import Sequence, Any
+from typing import Sequence, Optional
 import inspect
 import snakemake
 
@@ -147,7 +147,7 @@ class SnakemakeKwargsAction(argparse.Action):
         parser: argparse.ArgumentParser,
         namespace: argparse.Namespace,
         values: None | str | Sequence[str],
-        option_string: str | None = None,
+        option_string: Optional[str] = None,
     ) -> None:
         keyword_dict: dict[str, Sequence[str] | str] = {}
         allowed_snakemake_args = inspect.getfullargspec(snakemake.snakemake).args
