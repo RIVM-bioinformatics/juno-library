@@ -599,7 +599,6 @@ class TestRunSnakemake(unittest.TestCase):
     def test_pipeline(self) -> None:
         output_dir = Path("fake_output_dir")
         os.system(f'echo "output_dir: {str(output_dir)}" > user_parameters.yaml')
-        print(error_formatter("testing"))
         fake_run = juno_library.Pipeline(
             input_dir=Path("fake_input"),
             input_type="fastq",
