@@ -598,10 +598,8 @@ class TestRunSnakemake(unittest.TestCase):
         )
         audit_trail_path = output_dir.joinpath("audit_trail")
         successful_run = fake_run.run_snakemake()
-        successful_report = fake_run.make_snakemake_report()
         self.assertTrue(successful_run)
         self.assertTrue(output_dir.joinpath("fake_result.txt").exists())
-        self.assertTrue(successful_report)
         self.assertTrue(audit_trail_path.joinpath("snakemake_report.html").exists())
 
     @unittest.skipIf(
@@ -626,10 +624,8 @@ class TestRunSnakemake(unittest.TestCase):
         )
         audit_trail_path = output_dir.joinpath("audit_trail")
         successful_run = fake_run.run_snakemake()
-        successful_report = fake_run.make_snakemake_report()
         self.assertTrue(successful_run)
         self.assertTrue(output_dir.joinpath("fake_result.txt").exists())
-        self.assertTrue(successful_report)
         self.assertTrue(
             audit_trail_path.joinpath("fake_snakemake_report.html").exists()
         )
@@ -647,8 +643,24 @@ class TestKwargsClass(unittest.TestCase):
             action=SnakemakeKwargsAction,
             help="Extra arguments to be passed to snakemake API (https://snakemake.readthedocs.io/en/stable/api_reference/snakemake.html).",
         )
-        args = parser.parse_args(["--snakemake-args", "key1=value1", "key2=value2"])
-        expected_output = {"key1": "value1", "key2": "value2"}
+        self.assertRaisesRegex(
+            argparse.ArgumentTypeError,
+            "Make sure that you used the API format",
+            lambda: parser.parse_args(
+                ["--snakemake-args", "key1->value1", "resources"]
+            ),
+        )
+
+        self.assertRaisesRegex(
+            argparse.ArgumentTypeError,
+            "not specified in the snakemake python API",
+            lambda: parser.parse_args(["--snakemake-args", "key1=value1"]),
+        )
+
+        args = parser.parse_args(
+            ["--snakemake-args", "cores=1", "resources={'gpu':1}", "summary=True"]
+        )
+        expected_output = {"cores": 1, "resources": dict(gpu=1), "summary": True}
         self.assertEqual(args.snakemake_args, expected_output, args.snakemake_args)
 
 

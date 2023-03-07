@@ -390,6 +390,28 @@ class RunSnakemake:
             samples_audit_file,
         ]
 
+    def _make_snakemake_report(self) -> bool:
+        """
+        Function to make a snakemake report after having run a pipeline. Note
+        that it expects that the output files were already produced by the
+        run_snakemake function
+        """
+        print(message_formatter(f"Generating snakemake report for audit trail..."))
+        # The copy of the sample sheet that was generated for audit trail is
+        # used instead of the original sample sheet. This is to avoid that if
+        # a new run is started while there is one running, the correct sample
+        # sheet for this new run is used.
+        snakemake_report_successful: bool = snakemake.snakemake(
+            self.snakefile,
+            workdir=str(self.workdir),
+            configfiles=[str(self.user_parameters), str(self.fixed_parameters)],
+            config={
+                "sample_sheet": str(self.path_to_audit.joinpath("sample_sheet.yaml"))
+            },
+            report=str(self.snakemake_report),
+        )
+        return snakemake_report_successful
+
     def run_snakemake(self) -> bool:
         """
         Main function to run snakemake. It has all the pre-determined input for
@@ -432,14 +454,16 @@ class RunSnakemake:
                     str(self.time_limit),
                 )
             )
-
+            self.snakemake_args["cluster"] = cluster
+        self.snakemake_args["configfiles"] = [
+            str(self.user_parameters),
+            str(self.fixed_parameters),
+        ]
+        self.snakemake_args["jobname"] = self.pipeline_name + "_{name}.jobid{jobid}"
         pipeline_run_successful: bool = snakemake.snakemake(
             self.snakefile,
             workdir=str(self.workdir),
-            configfiles=[str(self.user_parameters), str(self.fixed_parameters)],
             config={"sample_sheet": str(self.sample_sheet)},
-            cluster=cluster,
-            jobname=self.pipeline_name + "_{name}.jobid{jobid}",
             unlock=self.unlock,
             dryrun=self.dryrun,
             **self.snakemake_args,
@@ -448,34 +472,5 @@ class RunSnakemake:
             f"An error occured while running the {self.pipeline_name} pipeline."
         )
         print(message_formatter(f"Finished running {self.pipeline_name} pipeline!"))
+        _snakemake_report_run_succesful = self._make_snakemake_report()
         return pipeline_run_successful
-
-    def make_snakemake_report(self) -> bool:
-        """
-        Function to make a snakemake report after having run a pipeline. Note
-        that it expects that the output files were already produced by the
-        run_snakemake function
-        """
-        print(message_formatter(f"Generating snakemake report for audit trail..."))
-        # The copy of the sample sheet that was generated for audit trail is
-        # used instead of the original sample sheet. This is to avoid that if
-        # a new run is started while there is one running, the correct sample
-        # sheet for this new run is used.
-        snakemake_report_successful: bool = snakemake.snakemake(
-            self.snakefile,
-            workdir=str(self.workdir),
-            configfiles=[str(self.user_parameters), str(self.fixed_parameters)],
-            config={
-                "sample_sheet": str(self.path_to_audit.joinpath("sample_sheet.yaml"))
-            },
-            cores=1,
-            nodes=1,
-            report=str(self.snakemake_report),
-            **{
-                k: self.snakemake_args[k]
-                for k in self.snakemake_args
-                if k
-                not in ["cores", "report", "workdir", "configfiles", "config", "nodes"]
-            },
-        )
-        return snakemake_report_successful
