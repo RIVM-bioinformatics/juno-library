@@ -1,3 +1,3 @@
-from juno_library.juno_library import PipelineStartup, RunSnakemake
+from juno_library.juno_library import Pipeline
 
-__all__ = ["PipelineStartup", "RunSnakemake"]
+__all__ = ["Pipeline"]

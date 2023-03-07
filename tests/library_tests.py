@@ -19,6 +19,14 @@ def make_non_empty_file(
         file_.write(content)
 
 
+default_args = dict(
+    output_dir=Path("output"),
+    workdir=Path("./"),
+    pipeline_name="juno_library",
+    pipeline_version="v0.0.0",
+)
+
+
 class TestTextJunoHelpers(unittest.TestCase):
     """Testing Text Helper Functions"""
 
@@ -216,33 +224,34 @@ class TestPipelineStartup(unittest.TestCase):
         """Testing the pipeline startup fails if the input directory does not
         exist"""
         with self.assertRaises(AssertionError):
-            pipeline = juno_library.PipelineStartup(
-                input_dir=Path("unexisting"), input_type="both"
+            pipeline = juno_library.Pipeline(
+                input_dir=Path("unexisting"), input_type="both", **default_args  # type: ignore
             )
 
     def test_if_excludefile_exists(self) -> None:
         """Testing if the exclude file exists and if there is none that the pipeline continues."""
         with self.assertRaises(ValueError):
-            pipeline = juno_library.PipelineStartup(
+            pipeline = juno_library.Pipeline(
                 input_dir=Path(""),
                 exclusion_file=Path("exclusion_file.exclude"),
                 input_type="both",
+                **default_args,  # type: ignore
             )
 
     def test_emptydir(self) -> None:
         """Testing the pipeline startup fails if the input directory does not
         have expected files"""
         with self.assertRaises(ValueError):
-            pipeline = juno_library.PipelineStartup(
-                input_dir=Path("fake_dir_empty"), input_type="fastq"
+            pipeline = juno_library.Pipeline(
+                input_dir=Path("fake_dir_empty"), input_type="fastq", **default_args  # type: ignore
             )
 
     def test_incompletedir(self) -> None:
         """Testing the pipeline startup fails if the input directory is
         missing some of the fasta files for the fastq files"""
         with self.assertRaisesRegex(KeyError, "assembly is missing for sample sample1"):
-            pipeline = juno_library.PipelineStartup(
-                input_dir=Path("fake_dir_incomplete"), input_type="both"
+            pipeline = juno_library.Pipeline(
+                input_dir=Path("fake_dir_incomplete"), input_type="both", **default_args  # type: ignore
             )
 
     def test_correctdir_fastq(self) -> None:
@@ -268,8 +277,8 @@ class TestPipelineStartup(unittest.TestCase):
                 ),
             },
         }
-        pipeline = juno_library.PipelineStartup(
-            input_dir=Path("fake_dir_wsamples"), input_type="fastq"
+        pipeline = juno_library.Pipeline(
+            input_dir=Path("fake_dir_wsamples"), input_type="fastq", **default_args  # type: ignore
         )
         self.assertDictEqual(pipeline.sample_dict, expected_output)
 
@@ -289,10 +298,11 @@ class TestPipelineStartup(unittest.TestCase):
                 ),
             }
         }
-        pipeline = juno_library.PipelineStartup(
+        pipeline = juno_library.Pipeline(
             input_dir=Path("fake_dir_wsamples_exclusion"),
             exclusion_file=Path("exclusion_file.exclude"),
             input_type="fastq",
+            **default_args,  # type: ignore
         )
         self.assertDictEqual(pipeline.sample_dict, expected_output)
 
@@ -317,7 +327,7 @@ class TestPipelineStartup(unittest.TestCase):
                 "R2": str(input_dir.joinpath("12345_S182_L555_R2_001.fastq.gz")),
             },
         }
-        pipeline = juno_library.PipelineStartup(input_dir=input_dir, input_type="fastq")
+        pipeline = juno_library.Pipeline(input_dir=input_dir, input_type="fastq", **default_args)  # type: ignore
         self.assertDictEqual(pipeline.sample_dict, expected_output)
 
     def test_correctdir_fasta(self) -> None:
@@ -335,8 +345,8 @@ class TestPipelineStartup(unittest.TestCase):
                 )
             },
         }
-        pipeline = juno_library.PipelineStartup(
-            input_dir=Path("fake_dir_wsamples"), input_type="fasta"
+        pipeline = juno_library.Pipeline(
+            input_dir=Path("fake_dir_wsamples"), input_type="fasta", **default_args  # type: ignore
         )
         self.assertDictEqual(pipeline.sample_dict, expected_output)
 
@@ -369,8 +379,8 @@ class TestPipelineStartup(unittest.TestCase):
                 ),
             },
         }
-        pipeline = juno_library.PipelineStartup(
-            input_dir=Path("fake_dir_wsamples"), input_type="both"
+        pipeline = juno_library.Pipeline(
+            input_dir=Path("fake_dir_wsamples"), input_type="both", **default_args  # type: ignore
         )
         pipeline.get_metadata_from_csv_file()
         self.assertDictEqual(pipeline.sample_dict, expected_output)
@@ -381,10 +391,11 @@ class TestPipelineStartup(unittest.TestCase):
         different than 0"""
 
         with self.assertRaises(ValueError):
-            pipeline = juno_library.PipelineStartup(
+            pipeline = juno_library.Pipeline(
                 input_dir=Path("fake_dir_incomplete"),
                 input_type="both",
                 min_num_lines=1000,
+                **default_args,  # type: ignore
             )
 
     def test_junodir_wnumericsamplenames(self) -> None:
@@ -411,8 +422,8 @@ class TestPipelineStartup(unittest.TestCase):
             }
         }
         expected_metadata = {"1234": {"genus": "salmonella", "species": "enterica"}}
-        pipeline = juno_library.PipelineStartup(
-            input_dir=Path("fake_dir_juno"), input_type="both"
+        pipeline = juno_library.Pipeline(
+            input_dir=Path("fake_dir_juno"), input_type="both", **default_args  # type: ignore
         )
         pipeline.get_metadata_from_csv_file()
         self.assertDictEqual(pipeline.sample_dict, expected_output)
@@ -444,8 +455,8 @@ class TestPipelineStartup(unittest.TestCase):
             }
         }
         expected_metadata = {"1234": {"genus": "salmonella", "species": "enterica"}}
-        pipeline = juno_library.PipelineStartup(
-            input_dir=Path("fake_dir_juno"), input_type="both"
+        pipeline = juno_library.Pipeline(
+            input_dir=Path("fake_dir_juno"), input_type="both", **default_args  # type: ignore
         )
         self.assertDictEqual(pipeline.sample_dict, expected_output)
         pipeline.get_metadata_from_csv_file(
@@ -459,17 +470,15 @@ class TestPipelineStartup(unittest.TestCase):
         """Testing the pipeline startup fails with wrong fastq naming (name
         contains _1_ in the sample name)"""
         with self.assertRaises(KeyError):
-            pipeline = juno_library.PipelineStartup(
-                input_dir=Path("fake_wrong_fastq_names"), input_type="fastq"
+            pipeline = juno_library.Pipeline(
+                input_dir=Path("fake_wrong_fastq_names"), input_type="fastq", **default_args  # type: ignore
             )
 
     def test_fails_if_metadata_has_wrong_colnames(self) -> None:
         """
         Testing the pipeline startup fails with wrong column names in metadata
         """
-        test = juno_library.PipelineStartup(
-            input_dir=Path("fake_dir_juno"), input_type="both"
-        )
+        test = juno_library.Pipeline(input_dir=Path("fake_dir_juno"), input_type="both", **default_args)  # type: ignore
         with self.assertRaisesRegex(
             AssertionError, "does not contain one or more of the expected column names"
         ):
@@ -492,6 +501,8 @@ class TestRunSnakemake(unittest.TestCase):
         Path("fake_input/sample_a.fasta").touch()
         Path("fake_input/sample_b.fasta").touch()
         Path("fake_input/sample_c.fasta").touch()
+        make_non_empty_file(Path("fake_input/sample11233_R1.fastq"))
+        make_non_empty_file(Path("fake_input/sample11233_R2.fastq"))
 
     @classmethod
     def tearDownClass(cls) -> None:
@@ -502,7 +513,9 @@ class TestRunSnakemake(unittest.TestCase):
         os.system("rm -rf exclusion_file.exclude")
 
     def test_fake_dryrun_setup(self) -> None:
-        fake_run = juno_library.RunSnakemake(
+        fake_run = juno_library.Pipeline(
+            input_dir=Path("fake_input"),
+            input_type="fastq",
             pipeline_name="fake_pipeline",
             pipeline_version="0.1",
             output_dir=Path("fake_output_dir"),
@@ -526,7 +539,9 @@ class TestRunSnakemake(unittest.TestCase):
         self.assertFalse(audit_trail_path.joinpath("exclusion_file.exclude").is_file())
 
     def test_fake_run_setup(self) -> None:
-        fake_run = juno_library.RunSnakemake(
+        fake_run = juno_library.Pipeline(
+            input_dir=Path("fake_input"),
+            input_type="fastq",
             pipeline_name="fake_pipeline",
             pipeline_version="0.1",
             output_dir=Path("fake_output_dir"),
@@ -584,7 +599,10 @@ class TestRunSnakemake(unittest.TestCase):
     def test_pipeline(self) -> None:
         output_dir = Path("fake_output_dir")
         os.system(f'echo "output_dir: {str(output_dir)}" > user_parameters.yaml')
-        fake_run = juno_library.RunSnakemake(
+        print(error_formatter("testing"))
+        fake_run = juno_library.Pipeline(
+            input_dir=Path("fake_input"),
+            input_type="fastq",
             pipeline_name="fake_pipeline",
             pipeline_version="0.1",
             output_dir=Path("fake_output_dir"),
@@ -609,7 +627,9 @@ class TestRunSnakemake(unittest.TestCase):
     def test_pipeline_in_hpcRIVM(self) -> None:
         output_dir = Path("fake_hpcoutput_dir")
         os.system(f'echo "output_dir: {str(output_dir)}" > user_parameters.yaml')
-        fake_run = juno_library.RunSnakemake(
+        fake_run = juno_library.Pipeline(
+            input_dir=Path("fake_input"),
+            input_type="fastq",
             pipeline_name="fake_pipeline",
             pipeline_version="0.1",
             output_dir=output_dir,

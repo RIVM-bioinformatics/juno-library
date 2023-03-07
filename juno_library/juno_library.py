@@ -23,7 +23,7 @@ from typing import Any, Optional
 
 
 @dataclass(kw_only=True)
-class PipelineStartup:
+class Pipeline:
     """
     Class to perform actions that need to be done before running a pipeline.
     For instance: check that input directory exists and has the expected input
@@ -37,15 +37,46 @@ class PipelineStartup:
     input_type: str = "both"
     exclusion_file: Optional[Path] = None
     excluded_samples: set[str] = field(default_factory=set)
-    min_num_lines: int = 0
+    min_num_lines: int = -1
     fasta_dir: Optional[Path] = None
     fastq_dir: Optional[Path] = None
 
-    def __post_init__(self) -> None:
-        """
-        Validates the input directory and builds a sample_dict.
-        This function is not automatically run if the class is inherited.
-        """
+    pipeline_name: str
+    pipeline_version: str
+    output_dir: Path
+    workdir: Path
+    sample_sheet: Path = pathlib.Path("config/sample_sheet.yaml").resolve()
+    user_parameters: Path = pathlib.Path("config/user_parameters.yaml").resolve()
+    fixed_parameters: Path = pathlib.Path("config/pipeline_parameters.yaml").resolve()
+    snakefile: str = "Snakefile"
+    unlock: bool = False
+    dryrun: bool = False
+    local: bool = False
+    queue: str = "bio"
+    time_limit: int = 60
+    snakemake_args: dict[str, Any] = field(
+        default_factory=lambda: dict(
+            cores=300,
+            nodes=300,
+            force_incomplete=True,
+            use_conda=True,
+            conda_prefix=None,
+            use_singularity=True,
+            singularity_args="",
+            singularity_prefix=None,
+            restart_times=0,
+            latency_wait=60,
+            conda_frontend="mamba",
+            keepgoing=True,
+            printshellcmds=True,
+        )
+    )
+
+    def __post_init__(
+        self, extra_snakemake_args: Optional[dict[str, Any]] = None
+    ) -> None:
+        """Constructor"""
+
         # Convert str to Path if needed
         self.input_dir = pathlib.Path(self.input_dir).resolve()
 
@@ -79,6 +110,20 @@ class PipelineStartup:
             )
         )
         self.__validate_sample_dict()
+
+        self.path_to_audit = self.output_dir.joinpath("audit_trail").resolve()
+        self.output_dir = self.output_dir.resolve()
+        self.workdir = self.workdir.resolve()
+        self.snakemake_report = self.path_to_audit.joinpath("snakemake_report.html")
+
+        # Setup some audit trail params
+        self.date_and_time = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
+        self.unique_id: UUID = uuid4()
+        self.hostname = str(subprocess.check_output(["hostname"]).strip())
+
+        if extra_snakemake_args:
+            for (key, val) in extra_snakemake_args.items():
+                self.snakemake_args[key] = val
 
     def __build_sample_dict(self) -> None:
         """
@@ -142,8 +187,8 @@ class PipelineStartup:
                     sample["assembly"] = str(file_.resolve())
 
     def __set_exluded_samples(self) -> None:
-        """Function to exclude low quality samples that are specified by the user in a .txt file, given in the argument
-        parser with the option -ex or --exclude. Returns a sample dict as made in the function make_sample_dict
+        """Function to exclude e.g. low quality samples that are specified by the user in a .txt file, given in the argument
+        parser with the option -ex or --exclude.
         """
         if self.exclusion_file:
             if not self.exclusion_file.is_file() and str(self.exclusion_file).endswith(
@@ -156,7 +201,9 @@ class PipelineStartup:
                 )
             with open(self.exclusion_file, "r") as exclude_file_open:
                 exclude_samples = exclude_file_open.readlines()
-                self.excluded_samples = {x.replace("\n", "") for x in exclude_samples}
+                self.excluded_samples: set[str] = {
+                    x.replace("\n", "") for x in exclude_samples
+                }
 
     def __validate_sample_dict(self) -> bool:
         """Validates self.sample_dict
@@ -197,11 +244,13 @@ class PipelineStartup:
                             f"The assembly is missing for sample {sample}. This pipeline expects an assembly per sample."
                         )
                     )
-        if errors:
-            if len(errors) == 1:
-                raise errors[0]
-            raise KeyError(errors)
-        return True
+        match errors:
+            case []:
+                return True
+            case [e]:
+                raise e
+            case l:
+                raise KeyError(l)
 
     def get_metadata_from_csv_file(
         self,
@@ -235,66 +284,6 @@ class PipelineStartup:
             self.juno_metadata = juno_metadata.to_dict(orient="index")
         else:
             juno_metadata = None
-
-
-@dataclass(kw_only=True)
-class RunSnakemake:
-    """
-    Class with necessary input to actually run Snakemake. It is basically a
-    wrapper for the snakemake function (of the snakemake package) but with some
-    customization that is used in all our Juno pipelines
-    """
-
-    pipeline_name: str
-    pipeline_version: str
-    output_dir: Path
-    workdir: Path
-    exclusion_file: Optional[Path] = None
-    sample_sheet: Path = pathlib.Path("config/sample_sheet.yaml").resolve()
-    user_parameters: Path = pathlib.Path("config/user_parameters.yaml").resolve()
-    fixed_parameters: Path = pathlib.Path("config/pipeline_parameters.yaml").resolve()
-    snakefile: str = "Snakefile"
-    unlock: bool = False
-    dryrun: bool = False
-    local: bool = False
-    queue: str = "bio"
-    time_limit: int = 60
-    snakemake_args: dict[str, Any] = field(
-        default_factory=lambda: dict(
-            cores=300,
-            nodes=300,
-            force_incomplete=True,
-            use_conda=True,
-            conda_prefix=None,
-            use_singularity=True,
-            singularity_args="",
-            singularity_prefix=None,
-            restart_times=0,
-            latency_wait=60,
-            conda_frontend="mamba",
-            keepgoing=True,
-            printshellcmds=True,
-        )
-    )
-    # kwargs: dict[str, Any] = field(default_factory=dict)
-
-    def __post_init__(
-        self, extra_snakemake_args: Optional[dict[str, Any]] = None
-    ) -> None:
-        """Constructor"""
-        self.path_to_audit = self.output_dir.joinpath("audit_trail").resolve()
-        self.output_dir = self.output_dir.resolve()
-        self.workdir = self.workdir.resolve()
-        self.snakemake_report = self.path_to_audit.joinpath("snakemake_report.html")
-
-        # Setup some audit trail params
-        self.date_and_time = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
-        self.unique_id: UUID = uuid4()
-        self.hostname = str(subprocess.check_output(["hostname"]).strip())
-
-        if extra_snakemake_args:
-            for (key, val) in extra_snakemake_args.items():
-                self.snakemake_args[key] = val
 
     def __copy_exclusion_file_to_audit_path(self) -> None:
         """
