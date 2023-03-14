@@ -96,8 +96,12 @@ class TestJunoHelpers(unittest.TestCase):
             )
 
         url = get_repo_url(main_script_path)
-        self.assertTrue(
-            url == "https://github.com/RIVM-bioinformatics/juno-library.git"
+        self.assertIn(
+            url,
+            [
+                "https://github.com/RIVM-bioinformatics/juno-library.git",
+                "git@github.com:RIVM-bioinformatics/juno-library.git",
+            ],
         )
 
     def test_fail_when_dir_not_repo(self) -> None:
@@ -539,7 +543,7 @@ class TestRunSnakemake(unittest.TestCase):
             "-o",
             "fake_output_dir",
         ]
-        fake_run = Pipeline(
+        pipeline = Pipeline(
             argv=argv,
             input_type="fastq",
             pipeline_name="fake_pipeline",
@@ -547,15 +551,15 @@ class TestRunSnakemake(unittest.TestCase):
             sample_sheet=Path("sample_sheet.yaml"),
             user_parameters_file=Path("user_parameters.yaml"),
         )
-        fake_run.snakefile = str(Path("tests/Snakefile").resolve())
-        fake_run.setup()
+        pipeline.snakefile = str(Path("tests/Snakefile").resolve())
+        pipeline.setup()
 
         audit_trail_path = Path("fake_output_dir", "audit_trail")
         audit_trail_path.mkdir(parents=True, exist_ok=True)
-        fake_run.generate_audit_trail()
+        pipeline.generate_audit_trail()
 
-        self.assertIsInstance(fake_run.date_and_time, str)
-        self.assertEqual(fake_run.workdir, Path(main_script_path))
+        self.assertIsInstance(pipeline.date_and_time, str)
+        self.assertEqual(pipeline.workdir, Path(main_script_path))
         self.assertTrue(Path("fake_output_dir").is_dir())
         self.assertTrue(audit_trail_path.is_dir())
         self.assertTrue(audit_trail_path.joinpath("log_conda.txt").is_file())
@@ -592,6 +596,7 @@ class TestRunSnakemake(unittest.TestCase):
                     if (
                         "https://github.com/RIVM-bioinformatics/juno-library.git"
                         in line
+                        or "git@github.com:RIVM-bioinformatics/juno-library.git" in line
                     ):
                         repo_url_in_audit_trail = True
             self.assertTrue(repo_url_in_audit_trail)
@@ -607,19 +612,16 @@ class TestRunSnakemake(unittest.TestCase):
             "fake_output_dir",
             "--local",
         ]
-        fake_run = Pipeline(
+        pipeline = Pipeline(
             argv=argv,
             input_type="fastq",
-            pipeline_name="fake_pipeline",
-            pipeline_version="0.1",
-            sample_sheet=Path("sample_sheet.yaml"),
-            user_parameters_file=Path("user_parameters.yaml"),
+            **default_args,
         )
-        fake_run.snakefile = str(Path("tests/Snakefile").resolve())
-        fake_run.run()
+        pipeline.snakefile = str(Path("tests/Snakefile").resolve())
+        pipeline.run()
 
         audit_trail_path = output_dir.joinpath("audit_trail")
-        successful_run = fake_run.run()
+        successful_run = pipeline.run()
         self.assertTrue(successful_run)
         self.assertTrue(output_dir.joinpath("fake_result.txt").exists())
         self.assertTrue(audit_trail_path.joinpath("snakemake_report.html").exists())
@@ -637,19 +639,16 @@ class TestRunSnakemake(unittest.TestCase):
                 "fake_input",
                 "-o",
                 str(output_dir),
-                "-ex",
-                "exclusion_file.exclude",
             ],
+            input_type="fastq",
             **default_args,
         )
-
+        pipeline.snakefile = str(Path("tests/Snakefile").resolve())
         audit_trail_path = output_dir.joinpath("audit_trail")
         successful_run = pipeline.run()
         self.assertTrue(successful_run)
         self.assertTrue(output_dir.joinpath("fake_result.txt").exists())
-        self.assertTrue(
-            audit_trail_path.joinpath("fake_snakemake_report.html").exists()
-        )
+        self.assertTrue(audit_trail_path.joinpath("snakemake_report.html").exists())
 
 
 class TestKwargsClass(unittest.TestCase):

@@ -1,4 +1,0 @@
-'1234':
-  R1: /home/karim/projects/juno-library/fake_dir_juno/clean_fastq/1234_R1.fastq.gz
-  R2: /home/karim/projects/juno-library/fake_dir_juno/clean_fastq/1234_R2.fastq.gz
-  assembly: /home/karim/projects/juno-library/fake_dir_juno/de_novo_assembly_filtered/1234.fasta
