@@ -92,32 +92,13 @@ class Pipeline:
         ], "input_type to be checked can only be 'fastq', 'fasta' or 'both'"
 
         self.snakemake_config["sample_sheet"] = str(self.sample_sheet)
-        self.__add_arguments_to_parser()
+        self.__add_library_args_to_parser()
 
     def setup(self) -> None:
+        self.__parse_library_args()
+        self._parse_args()
 
-        ### Parse args and set relevant properties
-        args = self.parser.parse_args(self.argv)
-
-        self.snakemake_args.update(args.snakemake_args)
-        self.local: bool = args.local
-        self.unlock: bool = args.unlock
-        self.dryrun: bool = args.dryrun
-        self.time_limit: int = args.time_limit
-        self.queue: str = args.queue
-
-        self.workdir: Path = args.workdir.resolve()
-        self.input_dir: Path = args.input.resolve()
-        self.output_dir: Path = args.output.resolve()
-        self.path_to_audit = self.output_dir.joinpath("audit_trail").resolve()
-        self.snakemake_report = self.path_to_audit.joinpath("snakemake_report.html")
-        self.snakemake_config["input_dir"] = str(self.input_dir)
-        self.snakemake_config["output_dir"] = str(self.output_dir)
-
-        if self.snakemake_args["use_conda"]:
-            self.snakemake_args["conda_prefix"] = args.prefix
-        if self.snakemake_args["use_singularity"]:
-            self.snakemake_args["singularity_prefix"] = args.prefix
+        self.__set_exluded_samples()
 
         # Check if the input directory is created by juno-assembly and properly set up sample_dict if so
         assert (
@@ -128,13 +109,6 @@ class Pipeline:
                 "Making a list of samples to be processed in this pipeline run..."
             )
         )
-        # Check if an exclusion file is given
-        try:
-            self.exclusion_file = args.exclusion_file.resolve()
-            self.__set_exluded_samples()
-        except AttributeError:
-            # No exclusion file given on the command line
-            pass
 
         try:
             self.__build_sample_dict()
@@ -227,7 +201,7 @@ class Pipeline:
             _snakemake_report_run_succesful = self._make_snakemake_report()
         return pipeline_run_successful
 
-    def __add_arguments_to_parser(self) -> None:
+    def __add_library_args_to_parser(self) -> None:
         self.parser.add_argument(
             "-i",
             "--input",
@@ -308,6 +282,40 @@ class Pipeline:
             action=SnakemakeKwargsAction,
             help="Extra arguments to be passed to snakemake API (https://snakemake.readthedocs.io/en/stable/api_reference/snakemake.html).",
         )
+
+    def __parse_library_args(self) -> None:
+        ### Parse args and set relevant properties
+        args = self.parser.parse_args(self.argv)
+
+        self.snakemake_args.update(args.snakemake_args)
+        self.local: bool = args.local
+        self.unlock: bool = args.unlock
+        self.dryrun: bool = args.dryrun
+        self.time_limit: int = args.time_limit
+        self.queue: str = args.queue
+
+        self.workdir: Path = args.workdir.resolve()
+        self.input_dir: Path = args.input.resolve()
+        self.output_dir: Path = args.output.resolve()
+        self.path_to_audit = self.output_dir.joinpath("audit_trail").resolve()
+        self.snakemake_report = self.path_to_audit.joinpath("snakemake_report.html")
+        self.snakemake_config["input_dir"] = str(self.input_dir)
+        self.snakemake_config["output_dir"] = str(self.output_dir)
+
+        if self.snakemake_args["use_conda"]:
+            self.snakemake_args["conda_prefix"] = args.prefix
+        if self.snakemake_args["use_singularity"]:
+            self.snakemake_args["singularity_prefix"] = args.prefix
+
+        # Check if an exclusion file is given
+        try:
+            self.exclusion_file = args.exclusion_file.resolve()
+        except AttributeError:
+            # No exclusion file given on the command line
+            pass
+
+    def _parse_args(self) -> None:
+        pass
 
     def __build_sample_dict(self) -> None:
         """
