@@ -8,6 +8,7 @@ import pathlib
 import re
 import shutil
 import subprocess
+import sys
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -20,6 +21,7 @@ from snakemake import snakemake
 from juno_library.helper_functions import *
 from juno_library.version import *
 from typing import Any, Optional
+import argparse
 
 
 @dataclass(kw_only=True)
@@ -33,33 +35,36 @@ class Pipeline:
     as input
     """
 
-    input_dir: Path
-    input_type: str = "both"
-    exclusion_file: Optional[Path] = None
-    excluded_samples: set[str] = field(default_factory=set)
-    min_num_lines: int = -1
-    fasta_dir: Optional[Path] = None
-    fastq_dir: Optional[Path] = None
-
     pipeline_name: str
     pipeline_version: str
-    output_dir: Path
-    workdir: Path
-    sample_sheet: Path = pathlib.Path("config/sample_sheet.yaml").resolve()
-    user_parameters: Path = pathlib.Path("config/user_parameters.yaml").resolve()
-    fixed_parameters: Path = pathlib.Path("config/pipeline_parameters.yaml").resolve()
+
+    input_type: str = "both"
+    fasta_dir: Optional[Path] = None
+    fastq_dir: Optional[Path] = None
+    exclusion_file: Optional[Path] = None
+
+    excluded_samples: set[str] = field(default_factory=set)
+    min_num_lines: int = -1
+
+    # Setup some audit trail params
+    date_and_time: str = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
+    unique_id: UUID = uuid4()
+    hostname: str = str(subprocess.check_output(["hostname"]).strip())
+
+    # These are passed to snakemake
     snakefile: str = "Snakefile"
-    unlock: bool = False
-    dryrun: bool = False
-    local: bool = False
-    queue: str = "bio"
-    time_limit: int = 60
+    sample_sheet: Path = pathlib.Path("config/sample_sheet.yaml").resolve()
+    user_parameters: dict[str, Any] = field(default_factory=dict)
+    # user_parameters is created during the pipeline run to start snakemake with
+    user_parameters_file: Path = pathlib.Path("config/user_parameters.yaml").resolve()
+    # snakemake_config should be specified in the pipeline repository and has default values
+    snakemake_config: dict[str, Any] = field(default_factory=dict)
     snakemake_args: dict[str, Any] = field(
         default_factory=lambda: dict(
             cores=300,
             nodes=300,
             force_incomplete=True,
-            use_conda=True,
+            use_conda=False,
             conda_prefix=None,
             use_singularity=True,
             singularity_args="",
@@ -72,13 +77,13 @@ class Pipeline:
         )
     )
 
+    parser: argparse.ArgumentParser = field(default_factory=argparse.ArgumentParser)
+    argv: list[str] = field(default_factory=lambda: sys.argv)
+
     def __post_init__(
-        self, extra_snakemake_args: Optional[dict[str, Any]] = None
+        self,
     ) -> None:
         """Constructor"""
-
-        # Convert str to Path if needed
-        self.input_dir = pathlib.Path(self.input_dir).resolve()
 
         assert self.input_type in [
             "fastq",
@@ -86,24 +91,67 @@ class Pipeline:
             "both",
         ], "input_type to be checked can only be 'fastq', 'fasta' or 'both'"
 
-        # Check if an exclusion file is given
-        if self.exclusion_file:
-            self.exclusion_file = self.exclusion_file.resolve()
-            self.__set_exluded_samples()
-            assert self.exclusion_file.is_file()
+        self.snakemake_config["sample_sheet"] = str(self.sample_sheet)
+        self.__add_arguments_to_parser()
 
-        # Validate input files
+    def setup(self) -> None:
+
+        ### Parse args and set relevant properties
+        args = self.parser.parse_args(self.argv)
+
+        self.snakemake_args.update(args.snakemake_args)
+        self.local: bool = args.local
+        self.unlock: bool = args.unlock
+        self.dryrun: bool = args.dryrun
+        self.time_limit: int = args.time_limit
+        self.queue: str = args.queue
+
+        self.workdir: Path = args.workdir.resolve()
+        self.input_dir: Path = args.input.resolve()
+        self.output_dir: Path = args.output.resolve()
+        self.path_to_audit = self.output_dir.joinpath("audit_trail").resolve()
+        self.snakemake_report = self.path_to_audit.joinpath("snakemake_report.html")
+        self.snakemake_config["input_dir"] = str(self.input_dir)
+        self.snakemake_config["output_dir"] = str(self.output_dir)
+
+        if self.snakemake_args["use_conda"]:
+            self.snakemake_args["conda_prefix"] = args.prefix
+        if self.snakemake_args["use_singularity"]:
+            self.snakemake_args["singularity_prefix"] = args.prefix
+
+        # Check if the input directory is created by juno-assembly and properly set up sample_dict if so
         assert (
             self.input_dir.is_dir()
         ), f"The provided input directory ({str(self.input_dir)}) does not exist. Please provide an existing directory"
-
-        # Check if the input directory is created by juno-assembly and properly set up sample_dict if so
         print(
             message_formatter(
                 "Making a list of samples to be processed in this pipeline run..."
             )
         )
-        self.__build_sample_dict()
+        # Check if an exclusion file is given
+        try:
+            self.exclusion_file = args.exclusion_file.resolve()
+            self.__set_exluded_samples()
+        except AttributeError:
+            # No exclusion file given on the command line
+            pass
+
+        try:
+            self.__build_sample_dict()
+        except FileNotFoundError as e:
+            assert (
+                self.input_dir.is_dir()
+            ), f"The provided input directory ({str(self.input_dir)}) does not exist. Please provide an existing directory"
+            raise e
+
+        self.sample_sheet.parent.mkdir(exist_ok=True, parents=True)
+        with open(self.sample_sheet, "w") as f:
+            yaml.dump(self.sample_dict, f)
+
+        self.user_parameters_file.parent.mkdir(exist_ok=True, parents=True)
+        with open(self.user_parameters_file, "w") as f:
+            yaml.dump(self.user_parameters, f)
+
         print(
             message_formatter(
                 "Validating that all expected input files per sample are present in the input directory..."
@@ -111,19 +159,155 @@ class Pipeline:
         )
         self.__validate_sample_dict()
 
-        self.path_to_audit = self.output_dir.joinpath("audit_trail").resolve()
-        self.output_dir = self.output_dir.resolve()
-        self.workdir = self.workdir.resolve()
-        self.snakemake_report = self.path_to_audit.joinpath("snakemake_report.html")
+        # Validate input files
+        assert (
+            self.input_dir.is_dir()
+        ), f"The provided input directory ({str(self.input_dir)}) does not exist. Please provide an existing directory"
 
-        # Setup some audit trail params
-        self.date_and_time = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
-        self.unique_id: UUID = uuid4()
-        self.hostname = str(subprocess.check_output(["hostname"]).strip())
+    def run(self) -> bool:
+        """
+        Main function to run snakemake. It has all the pre-determined input for
+        running a Juno pipeline. Everything is customizable to run outside the
+        RIVM but the defaults are set for the RIVM and especially for an LSF
+        cluster. The commands are for now set to use bsub so it will not work
+        with other types of clusters but it is on the to-do list to do it.
+        """
+        self.setup()
+        print(message_formatter(f"Running {self.pipeline_name} pipeline."))
 
-        if extra_snakemake_args:
-            for (key, val) in extra_snakemake_args.items():
-                self.snakemake_args[key] = val
+        # Generate pipeline audit trail only if not dryrun (or unlock)
+        # store the exclusion file in the audit_trail as well
+        if not self.dryrun or self.unlock:
+            self.path_to_audit.mkdir(parents=True, exist_ok=True)
+            self.audit_trail_files = self.generate_audit_trail()
+            self.__copy_exclusion_file_to_audit_path()
+
+        if self.local:
+            print(message_formatter("Jobs will run locally"))
+            cluster = None
+        else:
+            print(message_formatter("Jobs will be sent to the cluster"))
+            cluster_log_dir = pathlib.Path(str(self.output_dir)).joinpath(
+                "log", "cluster"
+            )
+            cluster_log_dir.mkdir(parents=True, exist_ok=True)
+            cluster = (
+                'bsub -q %s \
+                    -n {threads} \
+                    -o %s/{name}_{wildcards}_{jobid}.out \
+                    -e %s/{name}_{wildcards}_{jobid}.err \
+                    -R "span[hosts=1]" \
+                    -R "rusage[mem={resources.mem_gb}G]" \
+                    -M {resources.mem_gb}G \
+                    -W %s '
+                % (
+                    str(self.queue),
+                    str(cluster_log_dir),
+                    str(cluster_log_dir),
+                    str(self.time_limit),
+                )
+            )
+            self.snakemake_args["cluster"] = cluster
+
+        self.snakemake_args["jobname"] = self.pipeline_name + "_{name}.jobid{jobid}"
+        pipeline_run_successful: bool = snakemake.snakemake(
+            self.snakefile,
+            workdir=str(self.workdir),
+            config=self.snakemake_config,
+            configfiles=[self.user_parameters_file],
+            unlock=self.unlock,
+            dryrun=self.dryrun,
+            **self.snakemake_args,
+        )
+        assert pipeline_run_successful, error_formatter(
+            f"An error occured while running the {self.pipeline_name} pipeline."
+        )
+        print(message_formatter(f"Finished running {self.pipeline_name} pipeline!"))
+        if not (self.dryrun or self.unlock):
+            _snakemake_report_run_succesful = self._make_snakemake_report()
+        return pipeline_run_successful
+
+    def __add_arguments_to_parser(self) -> None:
+        self.parser.add_argument(
+            "-i",
+            "--input",
+            type=Path,
+            metavar="DIR",
+            required=True,
+            help="Relative or absolute path to the input directory. It must contain all the raw reads (fastq) files for all samples to be processed (not in subfolders).",
+        )
+        self.parser.add_argument(
+            "-o",
+            "--output",
+            type=Path,
+            metavar="DIR",
+            default=Path("output"),
+            help="Relative or absolute path to the output directory. If none is given, an 'output' directory will be created in the current directory.",
+        )
+        self.parser.add_argument(
+            "-w",
+            "--workdir",
+            type=Path,
+            metavar="DIR",
+            default=Path("."),
+            help="Relative or absolute path to the working directory. If none is given, the current directory is used.",
+        )
+        self.parser.add_argument(
+            "-ex",
+            "--exclusionfile",
+            type=Path,
+            metavar="FILE",
+            dest="exclusion_file",
+            help="Path to the file that contains samplenames to be excluded.",
+        )
+        self.parser.add_argument(
+            "-p",
+            "--prefix",
+            type=str,
+            metavar="PATH",
+            default=None,
+            help="Conda or singularity prefix. Basically a path to the place where you want to store the conda environments or the singularity images.",
+        )
+        self.parser.add_argument(
+            "-l",
+            "--local",
+            action="store_true",
+            help="If this flag is present, the pipeline will be run locally (not attempting to send the jobs to an HPC cluster**). The default is to assume that you are working on a cluster. **Note that currently only LSF clusters are supported.",
+        )
+        self.parser.add_argument(
+            "-tl",
+            "--time-limit",
+            type=int,
+            metavar="INT",
+            default=60,
+            help="Time limit per job in minutes (passed as -W argument to bsub). Jobs will be killed if not finished in this time.",
+        )
+        self.parser.add_argument(
+            "-u",
+            "--unlock",
+            action="store_true",
+            help="Unlock output directory (passed to snakemake).",
+        )
+        self.parser.add_argument(
+            "-n",
+            "--dryrun",
+            action="store_true",
+            help="Dry run printing steps to be taken in the pipeline without actually running it (passed to snakemake).",
+        )
+        self.parser.add_argument(
+            "-q",
+            "--queue",
+            type=str,
+            default="bio",
+            help="Name of the queue that the job will be submitted to if working on a cluster.",
+        )
+        self.parser.add_argument(
+            "--snakemake-args",
+            nargs="*",
+            default={},
+            action=SnakemakeKwargsAction,
+            help="Extra arguments to be passed to snakemake API (https://snakemake.readthedocs.io/en/stable/api_reference/snakemake.html).",
+        )
 
     def __build_sample_dict(self) -> None:
         """
@@ -191,14 +375,6 @@ class Pipeline:
         parser with the option -ex or --exclude.
         """
         if self.exclusion_file:
-            if not self.exclusion_file.is_file() and str(self.exclusion_file).endswith(
-                ".exclude"
-            ):
-                print(
-                    error_formatter(
-                        f"Exclusion file:\n\t{self.exclusion_file}\ndoes not exist or does not end with '.exclude'. It is ignored."
-                    )
-                )
             with open(self.exclusion_file, "r") as exclude_file_open:
                 exclude_samples = exclude_file_open.readlines()
                 self.excluded_samples: set[str] = {
@@ -345,12 +521,13 @@ class Pipeline:
         should be produced in the individual pipelines and this step just
         ensures a copy is stored in the output_dir for audit trail
         """
+
         assert pathlib.Path(
             self.sample_sheet
         ).exists(), f"The sample sheet ({str(self.sample_sheet)}) does not exist. Either this file was not created properly by the pipeline or was deleted before starting the pipeline."
         assert pathlib.Path(
-            self.user_parameters
-        ).exists(), f"The provided user_parameters ({self.user_parameters}) does not exist. Either this file was not created properly by the pipeline or was deleted before starting the pipeline"
+            self.user_parameters_file
+        ).exists(), f"The provided user_parameters ({self.user_parameters_file}) does not exist. Either this file was not created properly by the pipeline or was deleted before starting the pipeline"
 
         git_file = self.path_to_audit.joinpath("log_git.yaml")
         self.write_git_audit_file(git_file)
@@ -363,7 +540,7 @@ class Pipeline:
 
         user_parameters_audit_file = self.path_to_audit.joinpath("user_parameters.yaml")
         subprocess.run(
-            ["cp", self.user_parameters, user_parameters_audit_file],
+            ["cp", self.user_parameters_file, user_parameters_audit_file],
             check=True,
             timeout=60,
         )
@@ -392,74 +569,9 @@ class Pipeline:
         # sheet for this new run is used.
         snakemake_report_successful: bool = snakemake.snakemake(
             self.snakefile,
-            workdir=str(self.workdir),
-            configfiles=[str(self.user_parameters), str(self.fixed_parameters)],
-            config={
-                "sample_sheet": str(self.path_to_audit.joinpath("sample_sheet.yaml"))
-            },
+            workdir=self.workdir,
+            config=self.snakemake_config,
+            configfiles=[self.user_parameters_file],
             report=str(self.snakemake_report),
         )
         return snakemake_report_successful
-
-    def run_snakemake(self) -> bool:
-        """
-        Main function to run snakemake. It has all the pre-determined input for
-        running a Juno pipeline. Everything is customizable to run outside the
-        RIVM but the defaults are set for the RIVM and especially for an LSF
-        cluster. The commands are for now set to use bsub so it will not work
-        with other types of clusters but it is on the to-do list to do it.
-        """
-        print(message_formatter(f"Running {self.pipeline_name} pipeline."))
-
-        # Generate pipeline audit trail only if not dryrun (or unlock)
-        # store the exclusion file in the audit_trail as well
-        if not self.dryrun or self.unlock:
-            self.path_to_audit.mkdir(parents=True, exist_ok=True)
-            self.audit_trail_files = self.generate_audit_trail()
-            self.__copy_exclusion_file_to_audit_path()
-
-        if self.local:
-            print(message_formatter("Jobs will run locally"))
-            cluster = None
-        else:
-            print(message_formatter("Jobs will be sent to the cluster"))
-            cluster_log_dir = pathlib.Path(str(self.output_dir)).joinpath(
-                "log", "cluster"
-            )
-            cluster_log_dir.mkdir(parents=True, exist_ok=True)
-            cluster = (
-                'bsub -q %s \
-                    -n {threads} \
-                    -o %s/{name}_{wildcards}_{jobid}.out \
-                    -e %s/{name}_{wildcards}_{jobid}.err \
-                    -R "span[hosts=1]" \
-                    -R "rusage[mem={resources.mem_gb}G]" \
-                    -M {resources.mem_gb}G \
-                    -W %s '
-                % (
-                    str(self.queue),
-                    str(cluster_log_dir),
-                    str(cluster_log_dir),
-                    str(self.time_limit),
-                )
-            )
-            self.snakemake_args["cluster"] = cluster
-        self.snakemake_args["configfiles"] = [
-            str(self.user_parameters),
-            str(self.fixed_parameters),
-        ]
-        self.snakemake_args["jobname"] = self.pipeline_name + "_{name}.jobid{jobid}"
-        pipeline_run_successful: bool = snakemake.snakemake(
-            self.snakefile,
-            workdir=str(self.workdir),
-            config={"sample_sheet": str(self.sample_sheet)},
-            unlock=self.unlock,
-            dryrun=self.dryrun,
-            **self.snakemake_args,
-        )
-        assert pipeline_run_successful, error_formatter(
-            f"An error occured while running the {self.pipeline_name} pipeline."
-        )
-        print(message_formatter(f"Finished running {self.pipeline_name} pipeline!"))
-        _snakemake_report_run_succesful = self._make_snakemake_report()
-        return pipeline_run_successful
