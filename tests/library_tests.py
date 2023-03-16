@@ -554,25 +554,26 @@ class TestRunSnakemake(unittest.TestCase):
         pipeline.snakefile = str(Path("tests/Snakefile").resolve())
         pipeline.setup()
 
-        audit_trail_path = Path("fake_output_dir", "audit_trail")
-        audit_trail_path.mkdir(parents=True, exist_ok=True)
-        pipeline.generate_audit_trail()
+        pipeline.path_to_audit = Path("fake_output_dir", "audit_trail")
+        pipeline._generate_audit_trail()
 
         self.assertIsInstance(pipeline.date_and_time, str)
         self.assertEqual(pipeline.workdir, Path(main_script_path))
         self.assertTrue(Path("fake_output_dir").is_dir())
-        self.assertTrue(audit_trail_path.is_dir())
-        self.assertTrue(audit_trail_path.joinpath("log_conda.txt").is_file())
-        self.assertTrue(audit_trail_path.joinpath("log_git.yaml").is_file())
-        self.assertTrue(audit_trail_path.joinpath("log_pipeline.yaml").is_file())
-        self.assertTrue(audit_trail_path.joinpath("sample_sheet.yaml").is_file())
-        self.assertTrue(audit_trail_path.joinpath("user_parameters.yaml").is_file())
+        self.assertTrue(pipeline.path_to_audit.is_dir())
+        self.assertTrue(pipeline.path_to_audit.joinpath("log_conda.txt").is_file())
+        self.assertTrue(pipeline.path_to_audit.joinpath("log_git.yaml").is_file())
+        self.assertTrue(pipeline.path_to_audit.joinpath("log_pipeline.yaml").is_file())
+        self.assertTrue(pipeline.path_to_audit.joinpath("sample_sheet.yaml").is_file())
+        self.assertTrue(
+            pipeline.path_to_audit.joinpath("user_parameters.yaml").is_file()
+        )
         # self.assertTrue(audit_trail_path.joinpath('exclusion_file.exclude').is_file())
 
         pipeline_name_in_audit_trail = False
         pipeline_version_in_audit_trail = False
         with open(
-            audit_trail_path.joinpath("log_pipeline.yaml"), "r"
+            pipeline.path_to_audit.joinpath("log_pipeline.yaml"), "r"
         ) as git_pipeline_trail_file:
             for line in git_pipeline_trail_file:
                 if "fake_pipeline" in line:
@@ -590,7 +591,7 @@ class TestRunSnakemake(unittest.TestCase):
         if is_repo:
             repo_url_in_audit_trail = False
             with open(
-                audit_trail_path.joinpath("log_git.yaml"), "r"
+                pipeline.path_to_audit.joinpath("log_git.yaml"), "r"
             ) as git_audit_trail_file:
                 for line in git_audit_trail_file:
                     if (

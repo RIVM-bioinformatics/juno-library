@@ -148,9 +148,7 @@ class Pipeline:
         # Generate pipeline audit trail only if not dryrun (or unlock)
         # store the exclusion file in the audit_trail as well
         if not self.dryrun or self.unlock:
-            self.path_to_audit.mkdir(parents=True, exist_ok=True)
-            self.audit_trail_files = self.generate_audit_trail()
-            self.__copy_exclusion_file_to_audit_path()
+            self.audit_trail_files = self._generate_audit_trail()
 
         if self.local:
             print(message_formatter("Jobs will run locally"))
@@ -464,14 +462,7 @@ class Pipeline:
         else:
             juno_metadata = None
 
-    def __copy_exclusion_file_to_audit_path(self) -> None:
-        """
-        Make a copy of the exclude file.
-        """
-        if self.exclusion_file is not None:
-            shutil.copy(self.exclusion_file, self.path_to_audit)
-
-    def write_git_audit_file(self, git_file: Path) -> None:
+    def __write_git_audit_file(self, git_file: Path) -> None:
         """
         Function to get URL and commit from pipeline repo (if downloaded
         through git)
@@ -485,7 +476,7 @@ class Pipeline:
         with open(git_file, "w") as file:
             yaml.dump(git_audit, file, default_flow_style=False)
 
-    def write_pipeline_audit_file(self, pipeline_file: Path) -> None:
+    def _write_pipeline_audit_file(self, pipeline_file: Path) -> None:
         """Get the pipeline_info and print it to a file for audit trail"""
         print(
             message_formatter(
@@ -503,7 +494,7 @@ class Pipeline:
         with open(pipeline_file, "w") as file:
             yaml.dump(pipeline_info, file, default_flow_style=False)
 
-    def write_conda_audit_file(self, conda_file: Path) -> None:
+    def __write_conda_audit_file(self, conda_file: Path) -> None:
         """
         Get list of environments in current conda environment
         """
@@ -517,13 +508,14 @@ class Pipeline:
             file.writelines("Master environment list:\n\n")
             file.write(str(conda_audit))
 
-    def generate_audit_trail(self) -> list[Path]:
+    def _generate_audit_trail(self) -> list[Path]:
         """
         Produce audit trail in the output_dir. Most file contents are produced
         within this function but the sample_sheet and the user_parameters file
         should be produced in the individual pipelines and this step just
         ensures a copy is stored in the output_dir for audit trail
         """
+        self.path_to_audit.mkdir(parents=True, exist_ok=True)    
 
         assert pathlib.Path(
             self.sample_sheet
@@ -533,13 +525,16 @@ class Pipeline:
         ).exists(), f"The provided user_parameters ({self.user_parameters_file}) does not exist. Either this file was not created properly by the pipeline or was deleted before starting the pipeline"
 
         git_file = self.path_to_audit.joinpath("log_git.yaml")
-        self.write_git_audit_file(git_file)
+        self.__write_git_audit_file(git_file)
 
         conda_file = self.path_to_audit.joinpath("log_conda.txt")
-        self.write_conda_audit_file(conda_file)
+        self.__write_conda_audit_file(conda_file)
 
         pipeline_file = self.path_to_audit.joinpath("log_pipeline.yaml")
-        self.write_pipeline_audit_file(pipeline_file)
+        self._write_pipeline_audit_file(pipeline_file)
+
+        if self.exclusion_file is not None:
+            shutil.copy(self.exclusion_file, self.path_to_audit)
 
         user_parameters_audit_file = self.path_to_audit.joinpath("user_parameters.yaml")
         subprocess.run(
