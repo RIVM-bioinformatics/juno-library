@@ -276,7 +276,7 @@ class Pipeline:
             help="Extra arguments to be passed to snakemake API (https://snakemake.readthedocs.io/en/stable/api_reference/snakemake.html).",
         )
 
-    def _parse_args(self) -> None:
+    def _parse_args(self) -> argparse.Namespace:
         ### Parse args and set relevant properties
         args = self.parser.parse_args(self.argv)
 
@@ -305,6 +305,8 @@ class Pipeline:
             self.exclusion_file = args.exclusion_file.resolve()
         except AttributeError:
             pass  # No exclusion file given on the command line
+
+        return args
 
     def __build_sample_dict(self) -> None:
         """
