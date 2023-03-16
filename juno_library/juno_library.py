@@ -93,10 +93,9 @@ class Pipeline:
 
         self.snakemake_config["sample_sheet"] = str(self.sample_sheet)
         self.add_argument = self.parser.add_argument
-        self.__add_library_args_to_parser()
+        self._add_args_to_parser()
 
     def setup(self) -> None:
-        self.__parse_library_args()
         self._parse_args()
 
         self.__set_exluded_samples()
@@ -195,7 +194,7 @@ class Pipeline:
             _snakemake_report_run_succesful = self._make_snakemake_report()
         return pipeline_run_successful
 
-    def __add_library_args_to_parser(self) -> None:
+    def _add_args_to_parser(self) -> None:
         self.add_argument(
             "-i",
             "--input",
@@ -277,7 +276,7 @@ class Pipeline:
             help="Extra arguments to be passed to snakemake API (https://snakemake.readthedocs.io/en/stable/api_reference/snakemake.html).",
         )
 
-    def __parse_library_args(self) -> None:
+    def _parse_args(self) -> None:
         ### Parse args and set relevant properties
         args = self.parser.parse_args(self.argv)
 
@@ -306,9 +305,6 @@ class Pipeline:
             self.exclusion_file = args.exclusion_file.resolve()
         except AttributeError:
             pass  # No exclusion file given on the command line
-
-    def _parse_args(self) -> None:
-        pass
 
     def __build_sample_dict(self) -> None:
         """
