@@ -24,7 +24,7 @@ from typing import Any, Optional
 import argparse
 
 
-@dataclass(kw_only=True)
+@dataclass()
 class Pipeline:
     """
     Class to perform actions that need to be done before running a pipeline.
@@ -92,6 +92,7 @@ class Pipeline:
         ], "input_type to be checked can only be 'fastq', 'fasta' or 'both'"
 
         self.snakemake_config["sample_sheet"] = str(self.sample_sheet)
+        self.add_argument = self.parser.add_argument
         self.__add_library_args_to_parser()
 
     def setup(self) -> None:
@@ -100,17 +101,12 @@ class Pipeline:
 
         self.__set_exluded_samples()
 
-        # Check if the input directory is created by juno-assembly and properly set up sample_dict if so
-        assert (
-            self.input_dir.is_dir()
-        ), f"The provided input directory ({str(self.input_dir)}) does not exist. Please provide an existing directory"
-        print(
-            message_formatter(
-                "Making a list of samples to be processed in this pipeline run..."
-            )
-        )
-
         try:
+            print(
+                message_formatter(
+                    "Making a list of samples to be processed in this pipeline run..."
+                )
+            )
             self.__build_sample_dict()
         except FileNotFoundError as e:
             assert (
@@ -202,7 +198,7 @@ class Pipeline:
         return pipeline_run_successful
 
     def __add_library_args_to_parser(self) -> None:
-        self.parser.add_argument(
+        self.add_argument(
             "-i",
             "--input",
             type=Path,
@@ -210,7 +206,7 @@ class Pipeline:
             required=True,
             help="Relative or absolute path to the input directory. It must contain all the raw reads (fastq) files for all samples to be processed (not in subfolders).",
         )
-        self.parser.add_argument(
+        self.add_argument(
             "-o",
             "--output",
             type=Path,
@@ -218,7 +214,7 @@ class Pipeline:
             default=Path("output"),
             help="Relative or absolute path to the output directory. If none is given, an 'output' directory will be created in the current directory.",
         )
-        self.parser.add_argument(
+        self.add_argument(
             "-w",
             "--workdir",
             type=Path,
@@ -226,7 +222,7 @@ class Pipeline:
             default=Path("."),
             help="Relative or absolute path to the working directory. If none is given, the current directory is used.",
         )
-        self.parser.add_argument(
+        self.add_argument(
             "-ex",
             "--exclusionfile",
             type=Path,
@@ -234,7 +230,7 @@ class Pipeline:
             dest="exclusion_file",
             help="Path to the file that contains samplenames to be excluded.",
         )
-        self.parser.add_argument(
+        self.add_argument(
             "-p",
             "--prefix",
             type=str,
@@ -242,13 +238,13 @@ class Pipeline:
             default=None,
             help="Conda or singularity prefix. Basically a path to the place where you want to store the conda environments or the singularity images.",
         )
-        self.parser.add_argument(
+        self.add_argument(
             "-l",
             "--local",
             action="store_true",
             help="If this flag is present, the pipeline will be run locally (not attempting to send the jobs to an HPC cluster**). The default is to assume that you are working on a cluster. **Note that currently only LSF clusters are supported.",
         )
-        self.parser.add_argument(
+        self.add_argument(
             "-tl",
             "--time-limit",
             type=int,
@@ -256,26 +252,26 @@ class Pipeline:
             default=60,
             help="Time limit per job in minutes (passed as -W argument to bsub). Jobs will be killed if not finished in this time.",
         )
-        self.parser.add_argument(
+        self.add_argument(
             "-u",
             "--unlock",
             action="store_true",
             help="Unlock output directory (passed to snakemake).",
         )
-        self.parser.add_argument(
+        self.add_argument(
             "-n",
             "--dryrun",
             action="store_true",
             help="Dry run printing steps to be taken in the pipeline without actually running it (passed to snakemake).",
         )
-        self.parser.add_argument(
+        self.add_argument(
             "-q",
             "--queue",
             type=str,
             default="bio",
             help="Name of the queue that the job will be submitted to if working on a cluster.",
         )
-        self.parser.add_argument(
+        self.add_argument(
             "--snakemake-args",
             nargs="*",
             default={},
@@ -311,8 +307,7 @@ class Pipeline:
         try:
             self.exclusion_file = args.exclusion_file.resolve()
         except AttributeError:
-            # No exclusion file given on the command line
-            pass
+            pass  # No exclusion file given on the command line
 
     def _parse_args(self) -> None:
         pass
@@ -447,7 +442,7 @@ class Pipeline:
             filepath (Optional[Path], optional): The location of the csv. Defaults to None.
             expected_colnames (list[str], optional): The expected header of the csv. Defaults to ["sample", "genus"].
         """
-        if filepath is None:
+        if not filepath:
             # Only when the input_dir comes from the Juno-assembly pipeline
             # the input directory will have a sub-directory called identify_species
             # containing a top1_species_multireport.csv file that can be used as the
@@ -456,7 +451,7 @@ class Pipeline:
                 "identify_species", "top1_species_multireport.csv"
             )
         else:
-            juno_species_file = Path(filepath).resolve()
+            juno_species_file = filepath.resolve()
         if juno_species_file.exists():
             juno_metadata = read_csv(juno_species_file, dtype={"sample": str})
             assert all(
