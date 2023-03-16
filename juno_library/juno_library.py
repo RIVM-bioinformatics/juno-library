@@ -467,23 +467,12 @@ class Pipeline:
         Function to get URL and commit from pipeline repo (if downloaded
         through git)
         """
-        print(
-            message_formatter(
-                f"Collecting information about the Git repository of this pipeline (see {str(git_file)})"
-            )
-        )
         git_audit = {"repo": get_repo_url("."), "commit": get_commit_git(".")}
         with open(git_file, "w") as file:
             yaml.dump(git_audit, file, default_flow_style=False)
 
     def _write_pipeline_audit_file(self, pipeline_file: Path) -> None:
         """Get the pipeline_info and print it to a file for audit trail"""
-        print(
-            message_formatter(
-                f"Collecting information about the pipeline (see {str(pipeline_file)})"
-            )
-        )
-
         pipeline_info = {
             "pipeline_name": self.pipeline_name,
             "pipeline_version": self.pipeline_version,
@@ -498,11 +487,6 @@ class Pipeline:
         """
         Get list of environments in current conda environment
         """
-        print(
-            message_formatter(
-                "Getting information of the master environment used for this pipeline."
-            )
-        )
         conda_audit = subprocess.check_output(["conda", "list"]).strip()
         with open(conda_file, "w") as file:
             file.writelines("Master environment list:\n\n")
@@ -515,7 +499,8 @@ class Pipeline:
         should be produced in the individual pipelines and this step just
         ensures a copy is stored in the output_dir for audit trail
         """
-        self.path_to_audit.mkdir(parents=True, exist_ok=True)    
+        self.path_to_audit.mkdir(parents=True, exist_ok=True)
+        print(message_formatter(f"Making audit trail in {str(self.path_to_audit)}."))
 
         assert pathlib.Path(
             self.sample_sheet
