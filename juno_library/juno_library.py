@@ -113,14 +113,6 @@ class Pipeline:
             ), f"The provided input directory ({str(self.input_dir)}) does not exist. Please provide an existing directory"
             raise e
 
-        self.sample_sheet.parent.mkdir(exist_ok=True, parents=True)
-        with open(self.sample_sheet, "w") as f:
-            yaml.dump(self.sample_dict, f)
-
-        self.user_parameters_file.parent.mkdir(exist_ok=True, parents=True)
-        with open(self.user_parameters_file, "w") as f:
-            yaml.dump(self.user_parameters, f)
-
         print(
             message_formatter(
                 "Validating that all expected input files per sample are present in the input directory..."
@@ -133,7 +125,7 @@ class Pipeline:
             self.input_dir.is_dir()
         ), f"The provided input directory ({str(self.input_dir)}) does not exist. Please provide an existing directory"
 
-    def run(self) -> bool:
+    def run(self) -> None:
         """
         Main function to run snakemake. It has all the pre-determined input for
         running a Juno pipeline. Everything is customizable to run outside the
@@ -142,6 +134,13 @@ class Pipeline:
         with other types of clusters but it is on the to-do list to do it.
         """
         self.setup()
+        self.sample_sheet.parent.mkdir(exist_ok=True, parents=True)
+        with open(self.sample_sheet, "w") as f:
+            yaml.dump(self.sample_dict, f)
+
+        self.user_parameters_file.parent.mkdir(exist_ok=True, parents=True)
+        with open(self.user_parameters_file, "w") as f:
+            yaml.dump(self.user_parameters, f)
         print(message_formatter(f"Running {self.pipeline_name} pipeline."))
 
         # Generate pipeline audit trail only if not dryrun (or unlock)
@@ -187,12 +186,11 @@ class Pipeline:
             **self.snakemake_args,
         )
         assert pipeline_run_successful, error_formatter(
-            f"An error occured while running the {self.pipeline_name} pipeline."
+            f"An error occured while running the snakemake part of the {self.pipeline_name} pipeline. Check the logs."
         )
-        print(message_formatter(f"Finished running {self.pipeline_name} pipeline!"))
         if not (self.dryrun or self.unlock):
             _snakemake_report_run_succesful = self._make_snakemake_report()
-        return pipeline_run_successful
+        print(message_formatter(f"Finished running {self.pipeline_name} pipeline!"))
 
     def _add_args_to_parser(self) -> None:
         self.add_argument(
