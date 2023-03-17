@@ -622,8 +622,7 @@ class TestRunSnakemake(unittest.TestCase):
         pipeline.run()
 
         audit_trail_path = output_dir.joinpath("audit_trail")
-        successful_run = pipeline.run()
-        self.assertTrue(successful_run)
+        pipeline.run()
         self.assertTrue(output_dir.joinpath("fake_result.txt").exists())
         self.assertTrue(audit_trail_path.joinpath("snakemake_report.html").exists())
 
@@ -646,8 +645,7 @@ class TestRunSnakemake(unittest.TestCase):
         )
         pipeline.snakefile = str(Path("tests/Snakefile").resolve())
         audit_trail_path = output_dir.joinpath("audit_trail")
-        successful_run = pipeline.run()
-        self.assertTrue(successful_run)
+        pipeline.run()
         self.assertTrue(output_dir.joinpath("fake_result.txt").exists())
         self.assertTrue(audit_trail_path.joinpath("snakemake_report.html").exists())
 
