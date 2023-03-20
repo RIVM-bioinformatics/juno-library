@@ -99,6 +99,11 @@ class Pipeline:
         self._parse_args()
 
         self.__set_exluded_samples()
+        self.snakemake_config["singularity_args"] = (
+            f"--bind {self.input_dir}:{self.input_dir} --bind {self.output_dir}:{self.output_dir}"
+            if self.snakemake_args["use_singularity"]
+            else ""
+        )
 
         try:
             print(
@@ -185,6 +190,7 @@ class Pipeline:
             dryrun=self.dryrun,
             **self.snakemake_args,
         )
+
         assert pipeline_run_successful, error_formatter(
             f"An error occured while running the snakemake part of the {self.pipeline_name} pipeline. Check the logs."
         )
