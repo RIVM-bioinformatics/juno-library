@@ -99,7 +99,7 @@ class Pipeline:
         self._parse_args()
 
         self.__set_exluded_samples()
-        self.snakemake_config["singularity_args"] = (
+        self.snakemake_args["singularity_args"] = (
             f"--bind {self.input_dir}:{self.input_dir} --bind {self.output_dir}:{self.output_dir}"
             if self.snakemake_args["use_singularity"]
             else ""
@@ -181,6 +181,7 @@ class Pipeline:
             self.snakemake_args["cluster"] = cluster
 
         self.snakemake_args["jobname"] = self.pipeline_name + "_{name}.jobid{jobid}"
+
         pipeline_run_successful: bool = snakemake.snakemake(
             self.snakefile,
             workdir=str(self.workdir),
