@@ -274,6 +274,12 @@ class Pipeline:
             help="Name of the queue that the job will be submitted to if working on a cluster.",
         )
         self.add_argument(
+            "--no-containers",
+            action="store_false",
+            dest="use_singularity",
+            help="Use conda environments instead of containers.",
+        )
+        self.add_argument(
             "--snakemake-args",
             nargs="*",
             default={},
@@ -299,6 +305,8 @@ class Pipeline:
         self.snakemake_report = self.path_to_audit.joinpath("snakemake_report.html")
         self.snakemake_config["input_dir"] = str(self.input_dir)
         self.snakemake_config["output_dir"] = str(self.output_dir)
+        self.snakemake_args["use_singularity"] = args.use_singularity
+        self.snakemake_args["use_conda"] = not args.use_singularity
 
         if self.snakemake_args["use_conda"]:
             self.snakemake_args["conda_prefix"] = args.prefix
