@@ -1,7 +1,8 @@
-"""
-The Juno pipeline library contains the basic classes to build a 
-bacteriology genomics pipeline with the format used in the IDS-
-bioinformatics group at the RIVM. All our pipelines use Snakemake.
+"""The Juno pipeline library contains the basic classes to build a bacteriology
+genomics pipeline with the format used in the IDS- bioinformatics group at the
+RIVM.
+
+All our pipelines use Snakemake.
 """
 
 import pathlib
@@ -26,13 +27,13 @@ import argparse
 
 @dataclass()
 class Pipeline:
-    """
-    Class to perform actions that need to be done before running a pipeline.
-    For instance: check that input directory exists and has the expected input
-    files, generate a dictionary (sample_dict) with sample names and their
-    corresponding files, make a dictionary with metadata if necessary.
-    It has been written to be adapted to different pipelines accepting fastq and/or fasta files
-    as input
+    """Class to perform actions that need to be done before running a pipeline.
+
+    This class checks that input directory exists and has the expected
+    input files, generates a dictionary (sample_dict) with sample names
+    and their corresponding files, makes a dictionary with metadata if
+    necessary. It has been written to be adapted to different pipelines
+    accepting fastq and/or fasta files as input.
     """
 
     pipeline_name: str
@@ -85,7 +86,6 @@ class Pipeline:
     def __post_init__(
         self,
     ) -> None:
-        """Constructor"""
 
         assert self.input_type in [
             "fastq",
@@ -98,6 +98,11 @@ class Pipeline:
         self._add_args_to_parser()
 
     def setup(self) -> None:
+        """Parse arguments, create and validate sample_dict.
+
+        Raises:
+            FileNotFoundError | KeyError | ValueError: Might raise an error if the input_dir is not found or does not all files that are needed.
+        """
         self._parse_args()
 
         self.__set_exluded_samples()
@@ -133,12 +138,14 @@ class Pipeline:
         ), f"The provided input directory ({str(self.input_dir)}) does not exist. Please provide an existing directory"
 
     def run(self) -> None:
-        """
-        Main function to run snakemake. It has all the pre-determined input for
-        running a Juno pipeline. Everything is customizable to run outside the
-        RIVM but the defaults are set for the RIVM and especially for an LSF
-        cluster. The commands are for now set to use bsub so it will not work
-        with other types of clusters but it is on the to-do list to do it.
+        """Setup and run pipeline using snakemake.
+
+        It has all the pre-determined input for running a Juno pipeline.
+        Everything is customizable to run outside the RIVM but the
+        defaults are set for the RIVM and especially for an LSF cluster.
+        The commands are for now set to use bsub so it will not work
+        with other types of clusters but it is on the to-do list to do
+        it.
         """
         self.setup()
         self.sample_sheet.parent.mkdir(exist_ok=True, parents=True)
@@ -202,6 +209,7 @@ class Pipeline:
         print(message_formatter(f"Finished running {self.pipeline_name} pipeline!"))
 
     def _add_args_to_parser(self) -> None:
+        """Add arguments to self.parser."""
         self.add_argument(
             "-i",
             "--input",
@@ -290,6 +298,14 @@ class Pipeline:
         )
 
     def _parse_args(self) -> argparse.Namespace:
+        """Function to parse args from the self.parser object and set
+        parameters.
+
+        It sets pipeline parameters, updates snakemake arguments
+        configs. If you choose to override the behaviour in a inheriting
+        class, be sure to call this original function with
+        super()._parse_args().
+        """
         ### Parse args and set relevant properties
         args = self.parser.parse_args(self.argv)
 
@@ -315,7 +331,6 @@ class Pipeline:
         if self.snakemake_args["use_singularity"]:
             self.snakemake_args["singularity_prefix"] = args.prefix
 
-        # Check if an exclusion file is given
         try:
             self.exclusion_file = args.exclusion_file.resolve()
         except AttributeError:
@@ -324,9 +339,10 @@ class Pipeline:
         return args
 
     def __build_sample_dict(self) -> None:
-        """
-        Looks for samples in the input_dir and sets self.sample_dict accordingly.
-        It also checks whether the input_dir is an output dir if juno_assembly.
+        """Look for samples in input_dir and set self.sample_dict accordingly.
+
+        It also checks whether the input_dir is an output dir if
+        juno_assembly and sets self.input_dir_is_juno_assembly_output.
         """
         self.sample_dict: dict[str, dict[str, str]] = {}
         self.input_dir_is_juno_assembly_output = (
@@ -345,10 +361,10 @@ class Pipeline:
                 self.__enlist_fasta_samples(self.input_dir)
 
     def __enlist_fastq_samples(self, dir: Path) -> None:
-        """
-        Function to enlist the fastq files found in the input directory.
-        File with too little lines are silently ignored.
-        Adds or updates self.sample_dict with the form:
+        """Function to enlist the fastq files found in the input directory.
+        File with too little lines are silently ignored. Adds or updates
+        self.sample_dict with the form:
+
         {sample: {R1: fastq_file1, R2: fastq_file2}}
         """
         # Regex to detect different sample names in de fastq file names
@@ -369,9 +385,9 @@ class Pipeline:
                     sample[f"R{read_group}"] = str(file_.resolve())
 
     def __enlist_fasta_samples(self, dir: Path) -> None:
-        """
-        Function to enlist the fasta files found in the input
-        directory. Adds or updates self.sample_dict with the form:
+        """Function to enlist the fasta files found in the input directory.
+        Adds or updates self.sample_dict with the form:
+
         {sample: {assembly: fasta_file}}
         """
         pattern = re.compile("(.*?).fasta")
@@ -385,18 +401,20 @@ class Pipeline:
                     sample["assembly"] = str(file_.resolve())
 
     def __set_exluded_samples(self) -> None:
-        """Function to exclude e.g. low quality samples that are specified by the user in a .txt file, given in the argument
-        parser with the option -ex or --exclude.
+        """Read self.exclusion file and set self.excluded_sameples.
+
+        Function to exclude e.g. low quality samples that are specified
+        by the user in a .txt file, given in the argument parser with
+        the option -ex or --exclude.
         """
         if self.exclusion_file:
-            with open(self.exclusion_file, "r") as exclude_file_open:
-                exclude_samples = exclude_file_open.readlines()
+            with open(self.exclusion_file, "r") as f:
                 self.excluded_samples: set[str] = {
-                    x.replace("\n", "") for x in exclude_samples
+                    x.replace("\n", "") for x in f.readlines()
                 }
 
     def __validate_sample_dict(self) -> bool:
-        """Validates self.sample_dict
+        """Validate self.sample_dict.
 
         Checks whether for every sample found there is a fastq and/or fasta.
 
@@ -447,7 +465,7 @@ class Pipeline:
         filepath: Optional[Path] = None,
         expected_colnames: list[str] = ["sample", "genus"],
     ) -> None:
-        """Expects a csv with metadata per sample and sets self.juno_metadata dict
+        """Expects csv with metadata per sample, sets self.juno_metadata dict.
 
         Args:
             filepath (Optional[Path], optional): The location of the csv. Defaults to None.
@@ -476,16 +494,18 @@ class Pipeline:
             juno_metadata = None
 
     def __write_git_audit_file(self, git_file: Path) -> None:
+        """Function to get URL and commit from pipeline repo.
+
+        Args:
+            git_file (Path): The file that the info is written to.
         """
-        Function to get URL and commit from pipeline repo (if downloaded
-        through git)
-        """
+
         git_audit = {"repo": get_repo_url("."), "commit": get_commit_git(".")}
         with open(git_file, "w") as file:
             yaml.dump(git_audit, file, default_flow_style=False)
 
     def _write_pipeline_audit_file(self, pipeline_file: Path) -> None:
-        """Get the pipeline_info and print it to a file for audit trail"""
+        """Get the pipeline_info and print it to a file for audit trail."""
         pipeline_info = {
             "pipeline_name": self.pipeline_name,
             "pipeline_version": self.pipeline_version,
@@ -497,20 +517,19 @@ class Pipeline:
             yaml.dump(pipeline_info, file, default_flow_style=False)
 
     def __write_conda_audit_file(self, conda_file: Path) -> None:
-        """
-        Get list of environments in current conda environment
-        """
+        """Get list of environments in current conda environment."""
         conda_audit = subprocess.check_output(["conda", "list"]).strip()
         with open(conda_file, "w") as file:
             file.writelines("Master environment list:\n\n")
             file.write(str(conda_audit))
 
     def _generate_audit_trail(self) -> list[Path]:
-        """
-        Produce audit trail in the output_dir. Most file contents are produced
-        within this function but the sample_sheet and the user_parameters file
-        should be produced in the individual pipelines and this step just
-        ensures a copy is stored in the output_dir for audit trail
+        """Produce audit trail in the output_dir.
+
+        Most file contents are produced within this function but the
+        sample_sheet and the user_parameters file should be produced in
+        the individual pipelines and this step just ensures a copy is
+        stored in the output_dir for audit trail
         """
         self.path_to_audit.mkdir(parents=True, exist_ok=True)
         print(message_formatter(f"Making audit trail in {str(self.path_to_audit)}."))
@@ -553,10 +572,10 @@ class Pipeline:
         ]
 
     def _make_snakemake_report(self) -> bool:
-        """
-        Function to make a snakemake report after having run a pipeline. Note
-        that it expects that the output files were already produced by the
-        run_snakemake function
+        """Function to make a snakemake report after having run a pipeline.
+
+        Note that it expects that the output files were already produced
+        by the run_snakemake function
         """
         print(message_formatter(f"Generating snakemake report for audit trail..."))
         # The copy of the sample sheet that was generated for audit trail is
