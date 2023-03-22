@@ -78,7 +78,9 @@ class Pipeline:
     )
 
     parser: argparse.ArgumentParser = field(default_factory=argparse.ArgumentParser)
-    argv: list[str] = field(default_factory=lambda: sys.argv)
+    argv: list[str] = field(
+        default_factory=lambda: [x for x in sys.argv if not x.endswith(".py")]
+    )
 
     def __post_init__(
         self,
