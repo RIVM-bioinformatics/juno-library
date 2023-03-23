@@ -19,15 +19,15 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-      - name: Conda setup
-        uses: conda-incubator/setup-miniconda@v2
+      - name: Install Conda environment with Micromamba
+        uses: mamba-org/provision-with-micromamba@main
         with:
-          environment-file: juno_library/envs/juno_library.yaml 
-          activate-environment: juno_library
+          cache-downloads: true
+          environment-file: envs/juno_assembly.yaml
       - name: Conda list
         shell: bash -l {0}
         run: conda list
-      - name: Install juno-library
+      - name: Install juno-library with pip
         shell: bash -l {0}
         run: pip install -e .
       - name: Unit tests
