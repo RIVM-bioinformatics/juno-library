@@ -27,6 +27,9 @@ jobs:
       - name: Conda list
         shell: bash -l {0}
         run: conda list
+      - name: Install juno-library
+        shell: bash -l {0}
+        run: pip install -e .
       - name: Unit tests
         shell: bash -l {0}
         run: python tests/library_tests.py
