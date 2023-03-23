@@ -1,5 +1,36 @@
 # Changelog
 
+## [2.0.0](https://github.com/RIVM-bioinformatics/juno-library/compare/v1.0.1...v2.0.0) (2023-03-23)
+
+
+### ⚠ BREAKING CHANGES
+
+* Move snakemake args to dict
+
+### Features
+
+* Add no-containers flag ([9a5e33a](https://github.com/RIVM-bioinformatics/juno-library/commit/9a5e33ade44dd60a349521e7093704a186a5d213))
+
+
+### Bug Fixes
+
+* Make filepaths absolute ([375c661](https://github.com/RIVM-bioinformatics/juno-library/commit/375c661d85c1716a3f3b25be4ba37bd005add5eb))
+
+
+### Code Refactoring
+
+* Move snakemake args to dict ([afcd5d8](https://github.com/RIVM-bioinformatics/juno-library/commit/afcd5d8557b02d728bd8c49de4d76a27dec3b5da))
+
+
+### Documentation
+
+* Add docstrings to new functions ([fec95b9](https://github.com/RIVM-bioinformatics/juno-library/commit/fec95b9f7a4f1031802e54e7509c7bcfe3f53b1d))
+
+
+### Dependencies
+
+* Update dependencies ([74db4f5](https://github.com/RIVM-bioinformatics/juno-library/commit/74db4f573deeb1a2f094dc65df3e6599e3c3cdeb))
+
 ## [1.0.1](https://github.com/RIVM-bioinformatics/juno-library/compare/v1.0.0...v1.0.1) (2023-02-02)
 
 
