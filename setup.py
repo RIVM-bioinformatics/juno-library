@@ -1,6 +1,13 @@
 from __future__ import print_function
 
-import juno_library.version as juno_info
+from juno_library.version import (
+    __package_name__,
+    __version__,
+    __email__,
+    __description__,
+    __authors__,
+    __license__,
+)
 import sys
 
 if sys.version_info < (3, 10):
@@ -22,26 +29,28 @@ except ImportError:
 
 
 setup(
-    name=juno_info.__package_name__,
-    version=juno_info.__version__,
-    author=juno_info.__authors__,
-    author_email=juno_info.__email__,
-    description=juno_info.__description__,
+    name=__package_name__,
+    version=__version__,
+    author=__authors__,
+    author_email=__email__,
+    description=__description__,
     zip_safe=False,
-    license=juno_info.__license__,
+    license=__license__,
     packages=find_packages(),
     scripts=["juno_library/run.py"],
     package_data={"juno_library": ["envs/*", "py.typed"]},
     install_requires=[
         "pandas>=1.5",
+        "pandas-stubs>=1.5",
         "drmaa>=0.7.9",
-        "snakemake>=7.18",
+        "snakemake>=7.24",
         "xlrd>=2.0",
-        "pip>=22.3",
         "pyyaml>=6.0",
         "types-PyYAML>=6.0",
-        "numpy>=1.23",
-        "dask>=2022.11.0",
+        "black>=23",
+        "snakefmt>=0.8",
+        "mypy>=1.1",
+        "pip>=23",
     ],
     entry_points={"console_scripts": ["juno_pipeline = juno_library.run:main"]},
     include_package_data=True,
