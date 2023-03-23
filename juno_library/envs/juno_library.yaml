@@ -1,21 +1,21 @@
 name: juno_library
 channels:
-  - bioconda
   - conda-forge
+  - bioconda
   - defaults
 dependencies:
-  - mamba=0.27.*
-  - python=3.10.*
-  - pandas=1.5.2
-  - pandas-stubs=1.5.2
+  - python=3.11.*
+  - pandas=1.5.3
+  - pandas-stubs=1.5.3
   - drmaa==0.7.9
   - snakemake=7.18.*
   - xlrd=2.0.*
-  - pip=22.3.*
   - pyyaml=6.0
   - types-PyYaml=6.*
-  - numpy=1.23.*
-  - dask=2022.11.0
-  - git=2.38.*
-  - setuptools=65.5.*
-  - types-setuptools = 65.5.*
+  - git=2.40.*
+  - setuptools=67.*
+  - types-setuptools=67.*
+  - black=23.*
+  - snakefmt=0.8.*
+  - pip=23.*
+  - mypy=1.1.*

@@ -1,9 +1,10 @@
 import argparse
 import subprocess
 import pathlib
-from typing import Sequence, Any
+from typing import Sequence, Optional, Any
 import inspect
 import snakemake
+import ast
 
 # Helper functions for text manipulation
 
@@ -147,30 +148,39 @@ class SnakemakeKwargsAction(argparse.Action):
         parser: argparse.ArgumentParser,
         namespace: argparse.Namespace,
         values: None | str | Sequence[str],
-        option_string: str | None = None,
+        option_string: Optional[str] = None,
     ) -> None:
-        keyword_dict: dict[str, Sequence[str] | str] = {}
         allowed_snakemake_args = inspect.getfullargspec(snakemake.snakemake).args
+        snakemake_args: dict[str, Any] = dict()
         if not values:
             msg = f"No arguments and values were given to --snakemake-args. Did you try to pass an extra argument to Snakemkake? Make sure that you used the API format and that you use the argument int he form: arg=value."
             raise argparse.ArgumentTypeError(error_formatter(msg))
-        for pair in values:
-            pieces = pair.split("=")
-            if len(pieces) == 2:
-                value = pieces[1]
-                if value.startswith("["):
-                    if pieces[0] not in allowed_snakemake_args:
-                        raise argparse.ArgumentTypeError(
-                            error_formatter(
-                                f"The argument {pieces[0]} is not specified in the snakemake python API. Check it for typos or consult the api for the used snakemake version: {snakemake.__version__}"
-                            )
+        for arg in values:
+            try:
+                key, val = arg.split("=")
+
+                if key not in allowed_snakemake_args:
+                    raise argparse.ArgumentTypeError(
+                        error_formatter(
+                            f"The argument {key} is not specified in the snakemake python API. Check it for typos or consult the api for the used snakemake version: {snakemake.__version__}"
                         )
-                    keyword_dict[pieces[0]] = (
-                        value.replace("[", "").replace("]", "").split(",")
                     )
+                val = ast.literal_eval(val)
+                snakemake_args[key] = val
+            except ValueError as e:
+                if "unpack" in str(e):
+                    raise argparse.ArgumentTypeError(
+                        error_formatter(
+                            f"The argument {arg} is not valid. Did you try to pass an extra argument to Snakemake? Make sure that you used the API format and that you use the argument int he form: arg=value."
+                        )
+                    )
+                elif "malformed" in str(e):
+                    # For instance when val is simply a str it cannot be parsed by literal_eval
+                    key, val = arg.split("=")
+                    snakemake_args[key] = val
+                elif "snakemake python API" in str(e):
+                    raise e
                 else:
-                    keyword_dict[pieces[0]] = value
-            else:
-                msg = f"The argument {pair} is not valid. Did you try to pass an extra argument to Snakemkake? Make sure that you used the API format and that you use the argument int he form: arg=value."
-                raise argparse.ArgumentTypeError(error_formatter(msg))
-        setattr(namespace, self.dest, keyword_dict)
+                    raise e
+
+        setattr(namespace, self.dest, snakemake_args)
