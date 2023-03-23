@@ -2,7 +2,7 @@
 genomics pipeline with the format used in the IDS- bioinformatics group at the
 RIVM.
 
-All our pipelines use Snakemake.
+All of our pipelines use Snakemake.
 """
 
 import pathlib
@@ -92,7 +92,6 @@ class Pipeline:
     def __post_init__(
         self,
     ) -> None:
-
         assert self.input_type in [
             "fastq",
             "fasta",

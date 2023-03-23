@@ -23,7 +23,7 @@ jobs:
         uses: mamba-org/provision-with-micromamba@main
         with:
           cache-downloads: true
-          environment-file: envs/juno_assembly.yaml
+          environment-file: envs/juno_library.yaml
       - name: Conda list
         shell: bash -l {0}
         run: conda list
