@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.1](https://github.com/RIVM-bioinformatics/juno-library/compare/v2.0.0...v2.0.1) (2023-04-18)
+
+
+### Bug Fixes
+
+* Make sure library also works in python 3.8 ([fb9e7f6](https://github.com/RIVM-bioinformatics/juno-library/commit/fb9e7f6bc58f33c9ee8c58032b8abe1d4ccb4a57))
+
 ## [2.0.0](https://github.com/RIVM-bioinformatics/juno-library/compare/v1.0.1...v2.0.0) (2023-03-23)
 
 
