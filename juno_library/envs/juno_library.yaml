@@ -4,7 +4,7 @@ channels:
   - bioconda
   - defaults
 dependencies:
-  - python=3.11.*
+  - python>=3.9.*
   - pandas=1.5.3
   - pandas-stubs=1.5.3
   - drmaa==0.7.9

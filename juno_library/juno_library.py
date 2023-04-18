@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """The Juno pipeline library contains the basic classes to build a bacteriology
 genomics pipeline with the format used in the IDS- bioinformatics group at the
 RIVM.
@@ -457,13 +459,12 @@ class Pipeline:
                             f"The assembly is missing for sample {sample}. This pipeline expects an assembly per sample."
                         )
                     )
-        match errors:
-            case []:
-                return True
-            case [e]:
-                raise e
-            case l:
-                raise KeyError(l)
+        if len(errors) == 0:
+            return True
+        if len(errors) == 1:
+            raise errors[0]
+        else:
+            raise KeyError(errors)
 
     def get_metadata_from_csv_file(
         self,
