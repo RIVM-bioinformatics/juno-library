@@ -10,7 +10,7 @@ from juno_library.version import (
 )
 import sys
 
-if sys.version_info < (3, 10):
+if sys.version_info < (3, 9):
     print(
         "At least Python 3.10 is required for the Juno pipelines to work.\n",
         file=sys.stderr,
