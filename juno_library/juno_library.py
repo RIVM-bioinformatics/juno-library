@@ -356,16 +356,25 @@ class Pipeline:
             self.input_dir.joinpath("clean_fastq").exists()
             and self.input_dir.joinpath("de_novo_assembly_filtered").exists()
         )
+        self.input_dir_is_juno_mapping_output = (
+            self.input_dir.joinpath("clean_fastq").exists()
+            and self.input_dir.joinpath("variants_filtered").exists()
+        )
         if self.input_dir_is_juno_assembly_output:
             self.__enlist_fastq_samples(self.input_dir.joinpath("clean_fastq"))
             self.__enlist_fasta_samples(
                 self.input_dir.joinpath("de_novo_assembly_filtered")
             )
+        elif self.input_dir_is_juno_mapping_output:
+            self.__enlist_fastq_samples(self.input_dir.joinpath("clean_fastq"))
+            self.__enlist_vcf_samples(self.input_dir.joinpath("variants_filtered"))
         else:
-            if self.input_type in ["fastq", "both"]:
+            if self.input_type in ["fastq", "both", "fastq_and_vcf"]:
                 self.__enlist_fastq_samples(self.input_dir)
             if self.input_type in ["fasta", "both"]:
                 self.__enlist_fasta_samples(self.input_dir)
+            if self.input_type in ["vcf", "fastq_and_vcf"]:
+                self.__enlist_vcf_samples(self.input_dir)
 
     def __enlist_fastq_samples(self, dir: Path) -> None:
         """Function to enlist the fastq files found in the input directory.
@@ -406,6 +415,22 @@ class Pipeline:
                         continue
                     sample = self.sample_dict.setdefault(sample_name, {})
                     sample["assembly"] = str(file_.resolve())
+    
+    def __enlist_vcf_samples(self, dir: Path) -> None:
+        """Function to enlist VCF files found in the input directory.
+        Adds or updates self.sample_dict with the form:
+
+        {sample: {vcf: vcf_file}}
+        """
+        pattern = re.compile("(.*?).vcf")
+        for file_ in dir.iterdir():
+            if validate_file_has_min_lines(file_, self.min_num_lines):
+                if match := pattern.fullmatch(file_.name):
+                    sample_name = match.group(1)
+                    if sample_name in self.excluded_samples:
+                        continue
+                    sample = self.sample_dict.setdefault(sample_name, {})
+                    sample["vcf"] = str(file_.resolve())
 
     def __set_exluded_samples(self) -> None:
         """Read self.exclusion file and set self.excluded_sameples.
