@@ -425,9 +425,7 @@ class TestPipelineStartup(unittest.TestCase):
                 "R2": str(
                     Path("fake_dir_wsamples").joinpath("sample1_R2.fastq.gz").resolve()
                 ),
-                "vcf": str(
-                    Path("fake_dir_wsamples").joinpath("sample1.vcf").resolve()
-                ),
+                "vcf": str(Path("fake_dir_wsamples").joinpath("sample1.vcf").resolve()),
             },
             "sample2": {
                 "R1": str(
@@ -438,9 +436,7 @@ class TestPipelineStartup(unittest.TestCase):
                     .joinpath("sample2_R2_filt.fq.gz")
                     .resolve()
                 ),
-                "vcf": str(
-                    Path("fake_dir_wsamples").joinpath("sample2.vcf").resolve()
-                ),
+                "vcf": str(Path("fake_dir_wsamples").joinpath("sample2.vcf").resolve()),
             },
         }
         pipeline = Pipeline(
