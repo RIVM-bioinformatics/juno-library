@@ -358,7 +358,7 @@ class Pipeline:
         )
         self.input_dir_is_juno_mapping_output = (
             self.input_dir.joinpath("clean_fastq").exists()
-            and self.input_dir.joinpath("variants_filtered").exists()
+            and self.input_dir.joinpath("variants").exists()
         )
         if self.input_dir_is_juno_assembly_output:
             self.__enlist_fastq_samples(self.input_dir.joinpath("clean_fastq"))
@@ -367,7 +367,7 @@ class Pipeline:
             )
         elif self.input_dir_is_juno_mapping_output:
             self.__enlist_fastq_samples(self.input_dir.joinpath("clean_fastq"))
-            self.__enlist_vcf_samples(self.input_dir.joinpath("variants_filtered"))
+            self.__enlist_vcf_samples(self.input_dir.joinpath("variants"))
         else:
             if self.input_type in ["fastq", "both", "fastq_and_vcf"]:
                 self.__enlist_fastq_samples(self.input_dir)
