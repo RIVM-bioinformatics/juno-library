@@ -50,6 +50,7 @@ class Pipeline:
     input_type: str = "both"
     fasta_dir: Optional[Path] = None
     fastq_dir: Optional[Path] = None
+    vcf_dir: Optional[Path] = None
     exclusion_file: Optional[Path] = None
 
     excluded_samples: set[str] = field(default_factory=set)
@@ -98,7 +99,9 @@ class Pipeline:
             "fastq",
             "fasta",
             "both",
-        ], "input_type to be checked can only be 'fastq', 'fasta' or 'both'"
+            "vcf",
+            "fastq_and_vcf",
+        ], "input_type to be checked can only be 'fastq', 'fasta', 'vcf', 'both' or 'fastq_and_vcf'"
 
         self.snakemake_config["sample_sheet"] = str(self.sample_sheet)
         self.add_argument = self.parser.add_argument
@@ -482,6 +485,15 @@ class Pipeline:
                     errors.append(
                         KeyError(
                             f"The assembly is missing for sample {sample}. This pipeline expects an assembly per sample."
+                        )
+                    )
+        if self.input_type in ["vcf", "fastq_and_vcf"]:
+            for sample in self.sample_dict:
+                vcf_present = self.sample_dict[sample].keys()
+                if "vcf" not in vcf_present:
+                    errors.append(
+                        KeyError(
+                            f"The VCF file is missing for sample {sample}. This pipeline expects a VCF per sample."
                         )
                     )
         if len(errors) == 0:
