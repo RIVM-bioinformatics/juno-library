@@ -415,7 +415,7 @@ class Pipeline:
                         continue
                     sample = self.sample_dict.setdefault(sample_name, {})
                     sample["assembly"] = str(file_.resolve())
-    
+
     def __enlist_vcf_samples(self, dir: Path) -> None:
         """Function to enlist VCF files found in the input directory.
         Adds or updates self.sample_dict with the form:
