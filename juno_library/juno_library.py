@@ -59,7 +59,7 @@ class Pipeline:
     # Setup some audit trail params
     date_and_time: str = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
     unique_id: UUID = uuid4()
-    hostname: str = str(subprocess.check_output(["hostname"]).strip())
+    hostname: str = str(subprocess.check_output(["hostname"]).strip().decode('utf-8'))
 
     # These are passed to snakemake
     snakefile: str = "Snakefile"
@@ -596,7 +596,7 @@ class Pipeline:
 
     def __write_conda_audit_file(self, conda_file: Path) -> None:
         """Get list of environments in current conda environment."""
-        conda_audit = subprocess.check_output(["conda", "list"]).strip()
+        conda_audit = subprocess.check_output(["conda", "list"]).strip().decode('utf-8')
         with open(conda_file, "w") as file:
             file.writelines("Master environment list:\n\n")
             file.write(str(conda_audit))
