@@ -1,4 +1,5 @@
-[![Code quality](https://github.com/RIVM-bioinformatics/juno-library/actions/workflows/code_quality_checks.yaml/badge.svg)](https://github.com/RIVM-bioinformatics/juno-library/actions/workflows/code_quality_checks.yaml)
+[![Super linter](https://github.com/RIVM-bioinformatics/juno-library/actions/workflows/super-linter.yaml/badge.svg)](https://github.com/RIVM-bioinformatics/juno-library/actions/workflows/super-linter.yaml)
+[![Unit tests](https://github.com/RIVM-bioinformatics/juno-library/actions/workflows/unit_tests.yaml/badge.svg)](https://github.com/RIVM-bioinformatics/juno-library/actions/workflows/unit_tests.yaml)
 
 # Juno-Library
 
