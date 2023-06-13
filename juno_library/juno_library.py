@@ -100,8 +100,11 @@ class Pipeline:
             "fasta",
             "both",
             "vcf",
+            "bam",
+            "fastq_and_fasta",
             "fastq_and_vcf",
-        ], "input_type to be checked can only be 'fastq', 'fasta', 'vcf', 'both' or 'fastq_and_vcf'"
+            "bam_and_vcf",
+        ], "input_type to be checked can only be 'fastq', 'fasta', 'vcf', 'bam', 'both'/'fastq_and_fasta', 'fastq_and_vcf' or 'bam_and_vcf'"
 
         self.snakemake_config["sample_sheet"] = str(self.sample_sheet)
         self.add_argument = self.parser.add_argument
@@ -362,6 +365,7 @@ class Pipeline:
         self.input_dir_is_juno_mapping_output = (
             self.input_dir.joinpath("clean_fastq").exists()
             and self.input_dir.joinpath("variants").exists()
+            and self.input_dir.joinpath("reference", "reference.fasta").exists()
         )
         if self.input_dir_is_juno_assembly_output:
             self.__enlist_fastq_samples(self.input_dir.joinpath("clean_fastq"))
@@ -369,15 +373,17 @@ class Pipeline:
                 self.input_dir.joinpath("de_novo_assembly_filtered")
             )
         elif self.input_dir_is_juno_mapping_output:
-            self.__enlist_fastq_samples(self.input_dir.joinpath("clean_fastq"))
+            self.__enlist_bam_samples(self.input_dir.joinpath("mapped_reads", "duprem"))
             self.__enlist_vcf_samples(self.input_dir.joinpath("variants"))
         else:
-            if self.input_type in ["fastq", "both", "fastq_and_vcf"]:
+            if self.input_type in ["fastq", "both", "fastq_and_vcf", "fastq_and_fasta"]:
                 self.__enlist_fastq_samples(self.input_dir)
-            if self.input_type in ["fasta", "both"]:
+            if self.input_type in ["fasta", "both", "fastq_and_fasta"]:
                 self.__enlist_fasta_samples(self.input_dir)
-            if self.input_type in ["vcf", "fastq_and_vcf"]:
+            if self.input_type in ["vcf", "fastq_and_vcf", "bam_and_vcf"]:
                 self.__enlist_vcf_samples(self.input_dir)
+            if self.input_type in ["bam", "bam_and_vcf"]:
+                self.__enlist_bam_samples(self.input_dir)
 
     def __enlist_fastq_samples(self, dir: Path) -> None:
         """Function to enlist the fastq files found in the input directory.
@@ -421,10 +427,12 @@ class Pipeline:
 
     def __enlist_vcf_samples(self, dir: Path) -> None:
         """Function to enlist VCF files found in the input directory.
+        Also looks for a reference but does not fail if it's not found.
         Adds or updates self.sample_dict with the form:
 
         {sample: {vcf: vcf_file}}
         """
+        ref_path = dir.parent.joinpath("reference", "reference.fasta")
         pattern = re.compile("(.*?).vcf")
         for file_ in dir.iterdir():
             if validate_file_has_min_lines(file_, self.min_num_lines):
@@ -434,6 +442,24 @@ class Pipeline:
                         continue
                     sample = self.sample_dict.setdefault(sample_name, {})
                     sample["vcf"] = str(file_.resolve())
+                    if ref_path.exists():
+                        sample["reference"] = str(ref_path.resolve())
+
+    def __enlist_bam_samples(self, dir: Path) -> None:
+        """Function to enlist BAM files found in the input directory.
+        Adds or updates self.sample_dict with the form:
+
+        {sample: {bam: bam_file}}
+        """
+        pattern = re.compile("(.*?).bam")
+        for file_ in dir.iterdir():
+            if validate_file_has_min_lines(file_, self.min_num_lines):
+                if match := pattern.fullmatch(file_.name):
+                    sample_name = match.group(1)
+                    if sample_name in self.excluded_samples:
+                        continue
+                    sample = self.sample_dict.setdefault(sample_name, {})
+                    sample["bam"] = str(file_.resolve())
 
     def __set_exluded_samples(self) -> None:
         """Read self.exclusion file and set self.excluded_sameples.
@@ -468,7 +494,7 @@ class Pipeline:
                 )
             )
         errors = []
-        if self.input_type in ["fastq", "both"]:
+        if self.input_type in ["fastq", "both", "fastq_and_vcf", "fastq_and_fasta"]:
             for sample in self.sample_dict:
                 R1_present = "R1" in self.sample_dict[sample].keys()
                 R2_present = "R2" in self.sample_dict[sample].keys()
@@ -478,7 +504,7 @@ class Pipeline:
                             f"One of the paired fastq files (R1 or R2) are missing for sample {sample}. This pipeline ONLY ACCEPTS PAIRED READS. If you are sure you have complete paired-end reads, make sure to NOT USE _1 and _2 within your file names unless it is to differentiate paired fastq files or any unsupported character (Supported: letters, numbers, underscores)."
                         )
                     )
-        if self.input_type in ["fasta", "both"]:
+        if self.input_type in ["fasta", "both", "fastq_and_fasta"]:
             for sample in self.sample_dict:
                 assembly_present = self.sample_dict[sample].keys()
                 if "assembly" not in assembly_present:
@@ -487,13 +513,22 @@ class Pipeline:
                             f"The assembly is missing for sample {sample}. This pipeline expects an assembly per sample."
                         )
                     )
-        if self.input_type in ["vcf", "fastq_and_vcf"]:
+        if self.input_type in ["vcf", "fastq_and_vcf", "bam_and_vcf"]:
             for sample in self.sample_dict:
                 vcf_present = self.sample_dict[sample].keys()
                 if "vcf" not in vcf_present:
                     errors.append(
                         KeyError(
                             f"The VCF file is missing for sample {sample}. This pipeline expects a VCF per sample."
+                        )
+                    )
+        if self.input_type in ["bam", "bam_and_vcf"]:
+            for sample in self.sample_dict:
+                bam_present = self.sample_dict[sample].keys()
+                if "bam" not in bam_present:
+                    errors.append(
+                        KeyError(
+                            f"The BAM file is missing for sample {sample}. This pipeline expects a BAM per sample."
                         )
                     )
         if len(errors) == 0:
