@@ -306,6 +306,7 @@ class RunSnakemake(helper_functions.JunoHelpers):
         self.restarttimes=restarttimes
         self.latency=latency_wait
         self.time_limit = time_limit
+        self.cluster_status_command="check_lsf_status.py"
         self.kwargs = kwargs
 
         if exclusion_file is None:
@@ -434,6 +435,11 @@ class RunSnakemake(helper_functions.JunoHelpers):
                     -R \"rusage[mem={resources.mem_gb}G]\" \
                     -M {resources.mem_gb}G \
                     -W %s " % (str(self.queue), str(cluster_log_dir), str(cluster_log_dir), str(self.time_limit))
+            
+            check_lsf_available = shutil.which(self.cluster_status_command)
+            if check_lsf_available is not None:
+                cluster_status = self.cluster_status_command
+            
         
         pipeline_run_successful = snakemake(self.snakefile,
                                     workdir=self.workdir,
@@ -442,6 +448,7 @@ class RunSnakemake(helper_functions.JunoHelpers):
                                     cores=self.cores,
                                     nodes=self.cores,
                                     cluster=cluster,
+                                    cluster_status=self.cluster_status_command if check_lsf_available else None,
                                     jobname=self.pipeline_name + "_{name}.jobid{jobid}",
                                     use_conda=self.useconda,
                                     conda_frontend=self.conda_frontend,
