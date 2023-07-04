@@ -29,7 +29,7 @@ from juno_library.helper_functions import (
     get_commit_git,
     get_repo_url,
 )
-from typing import Any, Optional
+from typing import Any, Optional, Dict, cast
 import argparse
 
 
@@ -51,6 +51,7 @@ class Pipeline:
     fasta_dir: Optional[Path] = None
     fastq_dir: Optional[Path] = None
     exclusion_file: Optional[Path] = None
+    juno_metadata: Optional[dict[str, Any]] = None
 
     excluded_samples: set[str] = field(default_factory=set)
     min_num_lines: int = -1
@@ -488,16 +489,14 @@ class Pipeline:
         else:
             juno_species_file = filepath.resolve()
         if juno_species_file.exists():
-            juno_metadata = read_csv(juno_species_file, dtype={"sample": str})
+            sample_metadata = read_csv(juno_species_file, dtype={"sample": str})
             assert all(
-                [col in juno_metadata.columns for col in expected_colnames]
+                [col in sample_metadata.columns for col in expected_colnames]
             ), error_formatter(
                 f'The provided metadata file ({filepath}) does not contain one or more of the expected column names ({",".join(expected_colnames)}). Are you using the right capitalization for the column names?'
             )
-            juno_metadata.set_index("sample", inplace=True)
-            self.juno_metadata = juno_metadata.to_dict(orient="index")
-        else:
-            juno_metadata = None
+            sample_metadata.set_index("sample", inplace=True)
+            self.juno_metadata = cast(Dict[str,Any], sample_metadata.to_dict(orient="index"))
 
     def __write_git_audit_file(self, git_file: Path) -> None:
         """Function to get URL and commit from pipeline repo.

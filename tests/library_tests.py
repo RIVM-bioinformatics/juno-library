@@ -410,7 +410,7 @@ class TestPipelineStartup(unittest.TestCase):
         pipeline.setup()
         pipeline.get_metadata_from_csv_file()
         self.assertDictEqual(pipeline.sample_dict, expected_output)
-        self.assertFalse(hasattr(pipeline, "juno_metadata"))
+        self.assertIsNone(pipeline.juno_metadata)
 
     def test_files_smaller_than_minlen(self) -> None:
         """Testing the pipeline startup fails if you set a min_num_lines
@@ -457,6 +457,7 @@ class TestPipelineStartup(unittest.TestCase):
         pipeline.setup()
         pipeline.get_metadata_from_csv_file()
         self.assertDictEqual(pipeline.sample_dict, expected_output)
+        assert pipeline.juno_metadata is not None
         self.assertDictEqual(
             pipeline.juno_metadata, expected_metadata, pipeline.juno_metadata
         )
