@@ -412,7 +412,7 @@ class TestPipelineStartup(unittest.TestCase):
         pipeline.setup()
         pipeline.get_metadata_from_csv_file()
         self.assertDictEqual(pipeline.sample_dict, expected_output)
-        self.assertFalse(hasattr(pipeline, "juno_metadata"))
+        self.assertIsNone(pipeline.juno_metadata)
 
     def test_correctdir_fastq_and_vcf(self) -> None:
         """Testing the pipeline startup accepts both fastq and vcf"""
@@ -492,6 +492,7 @@ class TestPipelineStartup(unittest.TestCase):
         pipeline.setup()
         pipeline.get_metadata_from_csv_file()
         self.assertDictEqual(pipeline.sample_dict, expected_output)
+        assert pipeline.juno_metadata is not None
         self.assertDictEqual(
             pipeline.juno_metadata, expected_metadata, pipeline.juno_metadata
         )
