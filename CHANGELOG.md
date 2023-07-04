@@ -1,5 +1,22 @@
 # Changelog
 
+## [2.1.0](https://github.com/RIVM-bioinformatics/juno-library/compare/v2.0.1...v2.1.0) (2023-07-04)
+
+
+### Features
+
+* add enlisting of bam and reference ([4ef4be6](https://github.com/RIVM-bioinformatics/juno-library/commit/4ef4be65946f3c89809ebebe7335c97ec88e5cf1))
+* add vcf input files for mapping pipelines ([cf98af3](https://github.com/RIVM-bioinformatics/juno-library/commit/cf98af3e269fefa3e686b4dc64899e94324e58e0))
+* include vcf in tests ([cdcef21](https://github.com/RIVM-bioinformatics/juno-library/commit/cdcef21103362e4f0e2ddc7d0880eed2e54bcef9))
+
+
+### Bug Fixes
+
+* correct vcf directory name ([6512211](https://github.com/RIVM-bioinformatics/juno-library/commit/6512211364dfaa0b88c7bddd1a667b0324ef7de3))
+* Fix juno_metadata not existing ([9a478dd](https://github.com/RIVM-bioinformatics/juno-library/commit/9a478ddbff7a8414bc81594d1b393b2c928b214c))
+* fix unit test ([ba8eee1](https://github.com/RIVM-bioinformatics/juno-library/commit/ba8eee1c8bc25b69fe7de93c52bd6ebaeeae3c50))
+* include vcf in checks ([3e73986](https://github.com/RIVM-bioinformatics/juno-library/commit/3e73986a258578b72792ab6a918e8bb3b2857e96))
+
 ## [2.0.1](https://github.com/RIVM-bioinformatics/juno-library/compare/v2.0.0...v2.0.1) (2023-04-18)
 
 
