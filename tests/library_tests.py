@@ -181,6 +181,8 @@ class TestPipelineStartup(unittest.TestCase):
             "fake_dir_wsamples/sample2_R2_filt.fq.gz",
             "fake_dir_wsamples/sample1.fasta",
             "fake_dir_wsamples/sample2.fasta",
+            "fake_dir_wsamples/sample1.vcf",
+            "fake_dir_wsamples/sample2.vcf",
             "fake_dir_wsamples_exclusion/sample1_R1.fastq",
             "fake_dir_wsamples_exclusion/sample1_R2.fastq.gz",
             "fake_dir_wsamples_exclusion/sample2_R1_filt.fq",
@@ -410,7 +412,40 @@ class TestPipelineStartup(unittest.TestCase):
         pipeline.setup()
         pipeline.get_metadata_from_csv_file()
         self.assertDictEqual(pipeline.sample_dict, expected_output)
-        self.assertFalse(hasattr(pipeline, "juno_metadata"))
+        self.assertIsNone(pipeline.juno_metadata)
+
+    def test_correctdir_fastq_and_vcf(self) -> None:
+        """Testing the pipeline startup accepts both fastq and vcf"""
+
+        expected_output = {
+            "sample1": {
+                "R1": str(
+                    Path("fake_dir_wsamples").joinpath("sample1_R1.fastq").resolve()
+                ),
+                "R2": str(
+                    Path("fake_dir_wsamples").joinpath("sample1_R2.fastq.gz").resolve()
+                ),
+                "vcf": str(Path("fake_dir_wsamples").joinpath("sample1.vcf").resolve()),
+            },
+            "sample2": {
+                "R1": str(
+                    Path("fake_dir_wsamples").joinpath("sample2_R1_filt.fq").resolve()
+                ),
+                "R2": str(
+                    Path("fake_dir_wsamples")
+                    .joinpath("sample2_R2_filt.fq.gz")
+                    .resolve()
+                ),
+                "vcf": str(Path("fake_dir_wsamples").joinpath("sample2.vcf").resolve()),
+            },
+        }
+        pipeline = Pipeline(
+            **default_args, argv=["-i", "fake_dir_wsamples"], input_type="fastq_and_vcf"
+        )
+        pipeline.setup()
+        pipeline.get_metadata_from_csv_file()
+        self.assertDictEqual(pipeline.sample_dict, expected_output)
+        self.assertIsNone(pipeline.juno_metadata)
 
     def test_files_smaller_than_minlen(self) -> None:
         """Testing the pipeline startup fails if you set a min_num_lines
@@ -457,6 +492,7 @@ class TestPipelineStartup(unittest.TestCase):
         pipeline.setup()
         pipeline.get_metadata_from_csv_file()
         self.assertDictEqual(pipeline.sample_dict, expected_output)
+        assert pipeline.juno_metadata is not None
         self.assertDictEqual(
             pipeline.juno_metadata, expected_metadata, pipeline.juno_metadata
         )

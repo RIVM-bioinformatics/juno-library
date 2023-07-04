@@ -29,7 +29,7 @@ from juno_library.helper_functions import (
     get_commit_git,
     get_repo_url,
 )
-from typing import Any, Optional
+from typing import Any, Optional, Dict, cast
 import argparse
 
 
@@ -50,7 +50,9 @@ class Pipeline:
     input_type: str = "both"
     fasta_dir: Optional[Path] = None
     fastq_dir: Optional[Path] = None
+    vcf_dir: Optional[Path] = None
     exclusion_file: Optional[Path] = None
+    juno_metadata: Optional[dict[str, Any]] = None
 
     excluded_samples: set[str] = field(default_factory=set)
     min_num_lines: int = -1
@@ -58,7 +60,7 @@ class Pipeline:
     # Setup some audit trail params
     date_and_time: str = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
     unique_id: UUID = uuid4()
-    hostname: str = str(subprocess.check_output(["hostname"]).strip())
+    hostname: str = str(subprocess.check_output(["hostname"]).strip().decode("utf-8"))
 
     # These are passed to snakemake
     snakefile: str = "Snakefile"
@@ -98,7 +100,12 @@ class Pipeline:
             "fastq",
             "fasta",
             "both",
-        ], "input_type to be checked can only be 'fastq', 'fasta' or 'both'"
+            "vcf",
+            "bam",
+            "fastq_and_fasta",
+            "fastq_and_vcf",
+            "bam_and_vcf",
+        ], "input_type to be checked can only be 'fastq', 'fasta', 'vcf', 'bam', 'both'/'fastq_and_fasta', 'fastq_and_vcf' or 'bam_and_vcf'"
 
         self.snakemake_config["sample_sheet"] = str(self.sample_sheet)
         self.add_argument = self.parser.add_argument
@@ -356,16 +363,28 @@ class Pipeline:
             self.input_dir.joinpath("clean_fastq").exists()
             and self.input_dir.joinpath("de_novo_assembly_filtered").exists()
         )
+        self.input_dir_is_juno_mapping_output = (
+            self.input_dir.joinpath("clean_fastq").exists()
+            and self.input_dir.joinpath("variants").exists()
+            and self.input_dir.joinpath("reference", "reference.fasta").exists()
+        )
         if self.input_dir_is_juno_assembly_output:
             self.__enlist_fastq_samples(self.input_dir.joinpath("clean_fastq"))
             self.__enlist_fasta_samples(
                 self.input_dir.joinpath("de_novo_assembly_filtered")
             )
+        elif self.input_dir_is_juno_mapping_output:
+            self.__enlist_bam_samples(self.input_dir.joinpath("mapped_reads", "duprem"))
+            self.__enlist_vcf_samples(self.input_dir.joinpath("variants"))
         else:
-            if self.input_type in ["fastq", "both"]:
+            if self.input_type in ["fastq", "both", "fastq_and_vcf", "fastq_and_fasta"]:
                 self.__enlist_fastq_samples(self.input_dir)
-            if self.input_type in ["fasta", "both"]:
+            if self.input_type in ["fasta", "both", "fastq_and_fasta"]:
                 self.__enlist_fasta_samples(self.input_dir)
+            if self.input_type in ["vcf", "fastq_and_vcf", "bam_and_vcf"]:
+                self.__enlist_vcf_samples(self.input_dir)
+            if self.input_type in ["bam", "bam_and_vcf"]:
+                self.__enlist_bam_samples(self.input_dir)
 
     def __enlist_fastq_samples(self, dir: Path) -> None:
         """Function to enlist the fastq files found in the input directory.
@@ -407,6 +426,42 @@ class Pipeline:
                     sample = self.sample_dict.setdefault(sample_name, {})
                     sample["assembly"] = str(file_.resolve())
 
+    def __enlist_vcf_samples(self, dir: Path) -> None:
+        """Function to enlist VCF files found in the input directory.
+        Also looks for a reference but does not fail if it's not found.
+        Adds or updates self.sample_dict with the form:
+
+        {sample: {vcf: vcf_file}}
+        """
+        ref_path = dir.parent.joinpath("reference", "reference.fasta")
+        pattern = re.compile("(.*?).vcf")
+        for file_ in dir.iterdir():
+            if validate_file_has_min_lines(file_, self.min_num_lines):
+                if match := pattern.fullmatch(file_.name):
+                    sample_name = match.group(1)
+                    if sample_name in self.excluded_samples:
+                        continue
+                    sample = self.sample_dict.setdefault(sample_name, {})
+                    sample["vcf"] = str(file_.resolve())
+                    if ref_path.exists():
+                        sample["reference"] = str(ref_path.resolve())
+
+    def __enlist_bam_samples(self, dir: Path) -> None:
+        """Function to enlist BAM files found in the input directory.
+        Adds or updates self.sample_dict with the form:
+
+        {sample: {bam: bam_file}}
+        """
+        pattern = re.compile("(.*?).bam")
+        for file_ in dir.iterdir():
+            if validate_file_has_min_lines(file_, self.min_num_lines):
+                if match := pattern.fullmatch(file_.name):
+                    sample_name = match.group(1)
+                    if sample_name in self.excluded_samples:
+                        continue
+                    sample = self.sample_dict.setdefault(sample_name, {})
+                    sample["bam"] = str(file_.resolve())
+
     def __set_exluded_samples(self) -> None:
         """Read self.exclusion file and set self.excluded_sameples.
 
@@ -440,7 +495,7 @@ class Pipeline:
                 )
             )
         errors = []
-        if self.input_type in ["fastq", "both"]:
+        if self.input_type in ["fastq", "both", "fastq_and_vcf", "fastq_and_fasta"]:
             for sample in self.sample_dict:
                 R1_present = "R1" in self.sample_dict[sample].keys()
                 R2_present = "R2" in self.sample_dict[sample].keys()
@@ -450,13 +505,31 @@ class Pipeline:
                             f"One of the paired fastq files (R1 or R2) are missing for sample {sample}. This pipeline ONLY ACCEPTS PAIRED READS. If you are sure you have complete paired-end reads, make sure to NOT USE _1 and _2 within your file names unless it is to differentiate paired fastq files or any unsupported character (Supported: letters, numbers, underscores)."
                         )
                     )
-        if self.input_type in ["fasta", "both"]:
+        if self.input_type in ["fasta", "both", "fastq_and_fasta"]:
             for sample in self.sample_dict:
                 assembly_present = self.sample_dict[sample].keys()
                 if "assembly" not in assembly_present:
                     errors.append(
                         KeyError(
                             f"The assembly is missing for sample {sample}. This pipeline expects an assembly per sample."
+                        )
+                    )
+        if self.input_type in ["vcf", "fastq_and_vcf", "bam_and_vcf"]:
+            for sample in self.sample_dict:
+                vcf_present = self.sample_dict[sample].keys()
+                if "vcf" not in vcf_present:
+                    errors.append(
+                        KeyError(
+                            f"The VCF file is missing for sample {sample}. This pipeline expects a VCF per sample."
+                        )
+                    )
+        if self.input_type in ["bam", "bam_and_vcf"]:
+            for sample in self.sample_dict:
+                bam_present = self.sample_dict[sample].keys()
+                if "bam" not in bam_present:
+                    errors.append(
+                        KeyError(
+                            f"The BAM file is missing for sample {sample}. This pipeline expects a BAM per sample."
                         )
                     )
         if len(errors) == 0:
@@ -488,16 +561,16 @@ class Pipeline:
         else:
             juno_species_file = filepath.resolve()
         if juno_species_file.exists():
-            juno_metadata = read_csv(juno_species_file, dtype={"sample": str})
+            sample_metadata = read_csv(juno_species_file, dtype={"sample": str})
             assert all(
-                [col in juno_metadata.columns for col in expected_colnames]
+                [col in sample_metadata.columns for col in expected_colnames]
             ), error_formatter(
                 f'The provided metadata file ({filepath}) does not contain one or more of the expected column names ({",".join(expected_colnames)}). Are you using the right capitalization for the column names?'
             )
-            juno_metadata.set_index("sample", inplace=True)
-            self.juno_metadata = juno_metadata.to_dict(orient="index")
-        else:
-            juno_metadata = None
+            sample_metadata.set_index("sample", inplace=True)
+            self.juno_metadata = cast(
+                Dict[str, Any], sample_metadata.to_dict(orient="index")
+            )
 
     def __write_git_audit_file(self, git_file: Path) -> None:
         """Function to get URL and commit from pipeline repo.
@@ -524,7 +597,7 @@ class Pipeline:
 
     def __write_conda_audit_file(self, conda_file: Path) -> None:
         """Get list of environments in current conda environment."""
-        conda_audit = subprocess.check_output(["conda", "list"]).strip()
+        conda_audit = subprocess.check_output(["conda", "list"]).strip().decode("utf-8")
         with open(conda_file, "w") as file:
             file.writelines("Master environment list:\n\n")
             file.write(str(conda_audit))
