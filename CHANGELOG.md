@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.2](https://github.com/RIVM-bioinformatics/juno-library/compare/v2.1.1...v2.1.2) (2024-01-25)
+
+
+### Bug Fixes
+
+* restrict snakemake to v7 ([393726c](https://github.com/RIVM-bioinformatics/juno-library/commit/393726cf12846990a8eac4f09c646ac19c431752))
+
 ## [2.1.0](https://github.com/RIVM-bioinformatics/juno-library/compare/v2.0.1...v2.1.0) (2023-07-04)
 
 
