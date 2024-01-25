@@ -43,7 +43,7 @@ setup(
         "pandas>=1.5",
         "pandas-stubs>=1.5",
         "drmaa>=0.7.9",
-        "snakemake>=7.24",
+        "snakemake>=7.24, <=7.32",
         "xlrd>=2.0",
         "pyyaml>=6.0",
         "types-PyYAML>=6.0",
