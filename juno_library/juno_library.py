@@ -400,6 +400,8 @@ class Pipeline:
         pattern = re.compile(
             r"(.*?)(?:_S\d+_|_)(?:L\d{3}_)?(?:p)?R?(1|2)(?:_.*|\..*)?\.f(ast)?q(\.gz)?"
         )
+        observed_combinations = []
+        errors = []
         for file_ in dir.iterdir():
             if validate_file_has_min_lines(file_, self.min_num_lines):
                 if match := pattern.fullmatch(file_.name):
@@ -407,8 +409,24 @@ class Pipeline:
                     read_group = match.group(2)
                     if sample_name in self.excluded_samples:
                         continue
+                    # check if sample_name and read_group combination is already seen before
+                    # if this happens, it might be that the sample is spread over multiple sequencing lanes
+                    if (sample_name, read_group) in observed_combinations:
+                        errors.append(
+                            KeyError(
+                                f"Multiple fastq files found for sample {sample_name} with read group {read_group}. This pipeline expects only one fastq file per sample and read group."
+                            )
+                        )
+                    else:
+                        observed_combinations.append((sample_name, read_group))
                     sample = self.sample_dict.setdefault(match.group(1), {})
                     sample[f"R{read_group}"] = str(file_.resolve())
+        if len(errors) == 0:
+            return True
+        if len(errors) == 1:
+            raise errors[0]
+        else:
+            raise KeyError(errors)
 
     def __enlist_fasta_samples(self, dir: Path) -> None:
         """Function to enlist the fasta files found in the input directory.
