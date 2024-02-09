@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.1.3](https://github.com/RIVM-bioinformatics/juno-library/compare/v2.1.2...v2.1.3) (2024-02-09)
+
+
+### Bug Fixes
+
+* catch error if sample has multiple libraries ([cff035a](https://github.com/RIVM-bioinformatics/juno-library/commit/cff035a1dc16add72246ce39e3be530f67efa2d9))
+* error message ([b66b9d5](https://github.com/RIVM-bioinformatics/juno-library/commit/b66b9d59efe501ee4fd41568e1d5fb444acf2495))
+* parse illumina library correctly ([2fd54a7](https://github.com/RIVM-bioinformatics/juno-library/commit/2fd54a71c61b9a25b91cc6f774f901325ad33cb3))
+
 ## [2.1.2](https://github.com/RIVM-bioinformatics/juno-library/compare/v2.1.1...v2.1.2) (2024-01-25)
 
 
