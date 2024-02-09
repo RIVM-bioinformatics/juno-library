@@ -171,7 +171,8 @@ class TestPipelineStartup(unittest.TestCase):
             "fake_dir_juno/clean_fastq",
             "fake_dir_juno/de_novo_assembly_filtered",
             "fake_dir_juno/identify_species",
-            "fake_wrong_fastq_names",
+            "fake_1_in_fastqname",
+            "fake_multiple_library_samples",
         ]
 
         fake_files = [
@@ -198,8 +199,12 @@ class TestPipelineStartup(unittest.TestCase):
             "fake_dir_juno/clean_fastq/1234_R1.fastq.gz",
             "fake_dir_juno/clean_fastq/1234_R2.fastq.gz",
             "fake_dir_juno/de_novo_assembly_filtered/1234.fasta",
-            "fake_wrong_fastq_names/1234_S001_PE_R1.fastq.gz",
-            "fake_wrong_fastq_names/1234_S001_PE_R2.fastq.gz",
+            "fake_1_in_fastqname/1234_1_R1.fastq.gz",
+            "fake_1_in_fastqname/1234_1_R2.fastq.gz",
+            "fake_multiple_library_samples/sample5_S1_L001_R1.fastq.gz",
+            "fake_multiple_library_samples/sample5_S1_L001_R2.fastq.gz",
+            "fake_multiple_library_samples/sample5_S1_L002_R1.fastq.gz",
+            "fake_multiple_library_samples/sample5_S1_L002_R2.fastq.gz",
         ]
 
         for folder in fake_dirs:
@@ -231,7 +236,8 @@ class TestPipelineStartup(unittest.TestCase):
             "fake_dir_juno/clean_fastq",
             "fake_dir_juno/de_novo_assembly_filtered",
             "fake_dir_juno/identify_species",
-            "fake_wrong_fastq_names",
+            "fake_1_in_fastqname",
+            "fake_multiple_library_samples",
         ]
 
         for folder in fake_dirs:
@@ -329,12 +335,14 @@ class TestPipelineStartup(unittest.TestCase):
         pipeline.setup()
         self.assertDictEqual(pipeline.sample_dict, expected_output)
 
-    def test_correctdir_fastq_with_L555_in_filename(self) -> None:
+    def test_correctdir_fastq_with_library_in_filename(self) -> None:
         """Testing the pipeline startup accepts fastq and fastq.gz files"""
 
         input_dir = Path("fake_dir_wsamples").resolve()
-        make_non_empty_file(input_dir.joinpath("12345_S182_L555_R1_001.fastq.gz"))
-        make_non_empty_file(input_dir.joinpath("12345_S182_L555_R2_001.fastq.gz"))
+        make_non_empty_file(input_dir.joinpath("sample3_S182_L555_R1_001.fastq.gz"))
+        make_non_empty_file(input_dir.joinpath("sample3_S182_L555_R2_001.fastq.gz"))
+        make_non_empty_file(input_dir.joinpath("sample4_S183_L001_R1_001.fastq.gz"))
+        make_non_empty_file(input_dir.joinpath("sample4_S183_L001_R2_001.fastq.gz"))
 
         expected_output = {
             "sample1": {
@@ -345,9 +353,13 @@ class TestPipelineStartup(unittest.TestCase):
                 "R1": str(input_dir.joinpath("sample2_R1_filt.fq")),
                 "R2": str(input_dir.joinpath("sample2_R2_filt.fq.gz")),
             },
-            "12345": {
-                "R1": str(input_dir.joinpath("12345_S182_L555_R1_001.fastq.gz")),
-                "R2": str(input_dir.joinpath("12345_S182_L555_R2_001.fastq.gz")),
+            "sample3": {
+                "R1": str(input_dir.joinpath("sample3_S182_L555_R1_001.fastq.gz")),
+                "R2": str(input_dir.joinpath("sample3_S182_L555_R2_001.fastq.gz")),
+            },
+            "sample4": {
+                "R1": str(input_dir.joinpath("sample4_S183_L001_R1_001.fastq.gz")),
+                "R2": str(input_dir.joinpath("sample4_S183_L001_R2_001.fastq.gz")),
             },
         }
         pipeline = Pipeline(
@@ -497,13 +509,23 @@ class TestPipelineStartup(unittest.TestCase):
             pipeline.juno_metadata, expected_metadata, pipeline.juno_metadata
         )
 
-    def test_fail_with_wrong_fastq_naming(self) -> None:
+    def test_fail_with_1_in_fastqname(self) -> None:
         """Testing the pipeline startup fails with wrong fastq naming (name
         contains _1_ in the sample name)"""
         with self.assertRaises(KeyError):
             pipeline = Pipeline(
                 **default_args,
-                argv=["-i", "fake_wrong_fastq_names"],
+                argv=["-i", "fake_1_in_fastqname"],
+                input_type="fastq",
+            )
+            pipeline.setup()
+
+    def test_fail_with_multiple_libraries_per_sample(self) -> None:
+        """Testing the pipeline startup fails with wrong fastq naming (multiple libraries per sample)"""
+        with self.assertRaises(KeyError):
+            pipeline = Pipeline(
+                **default_args,
+                argv=["-i", "fake_multiple_library_samples"],
                 input_type="fastq",
             )
             pipeline.setup()

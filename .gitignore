@@ -9,3 +9,6 @@ build/
 
 # Conda
 conda
+
+# config files
+config/sample_sheet.yaml

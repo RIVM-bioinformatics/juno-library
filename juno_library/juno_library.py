@@ -29,7 +29,7 @@ from juno_library.helper_functions import (
     get_commit_git,
     get_repo_url,
 )
-from typing import Any, Optional, Dict, cast
+from typing import Any, Optional, Dict, Tuple, cast
 import argparse
 
 
@@ -398,17 +398,35 @@ class Pipeline:
         # because they get confused with the identifiers of forward and reverse
         # reads.
         pattern = re.compile(
-            r"(.*?)(?:_S\d+_|_S\d+.|_|\.)(?:_L555_)?(?:p)?R?(1|2)(?:_.*\.|\..*\.|\.)f(ast)?q(\.gz)?"
+            r"(.*?)(?:_S\d+_|_)(?:L\d{3}_)?(?:p)?R?(1|2)(?:_.*|\..*)?\.f(ast)?q(\.gz)?"
         )
+        observed_combinations: Dict[Tuple[str, str], str] = {}
+        errors = []
         for file_ in dir.iterdir():
+            filepath_ = str(file_.resolve())
             if validate_file_has_min_lines(file_, self.min_num_lines):
                 if match := pattern.fullmatch(file_.name):
                     sample_name = match.group(1)
                     read_group = match.group(2)
                     if sample_name in self.excluded_samples:
                         continue
+                    # check if sample_name and read_group combination is already seen before
+                    # if this happens, it might be that the sample is spread over multiple sequencing lanes
+                    if (sample_name, read_group) in observed_combinations:
+                        observed_file = observed_combinations[sample_name, read_group]
+                        errors.append(
+                            KeyError(
+                                f"Multiple fastq files ({observed_file} and {filepath_}) matching the same sample ({sample_name}) and read group ({read_group}). This pipeline expects only one fastq file per sample and read group."
+                            )
+                        )
+                    else:
+                        observed_combinations[(sample_name, read_group)] = filepath_
                     sample = self.sample_dict.setdefault(match.group(1), {})
-                    sample[f"R{read_group}"] = str(file_.resolve())
+                    sample[f"R{read_group}"] = filepath_
+        if len(errors) == 1:
+            raise errors[0]
+        elif len(errors) > 1:
+            raise KeyError(errors)
 
     def __enlist_fasta_samples(self, dir: Path) -> None:
         """Function to enlist the fasta files found in the input directory.
