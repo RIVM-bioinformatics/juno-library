@@ -400,7 +400,7 @@ class Pipeline:
         pattern = re.compile(
             r"(.*?)(?:_S\d+_|_)(?:L\d{3}_)?(?:p)?R?(1|2)(?:_.*|\..*)?\.f(ast)?q(\.gz)?"
         )
-        observed_combinations = []
+        observed_combinations = {}
         errors = []
         for file_ in dir.iterdir():
             if validate_file_has_min_lines(file_, self.min_num_lines):
@@ -414,11 +414,13 @@ class Pipeline:
                     if (sample_name, read_group) in observed_combinations:
                         errors.append(
                             KeyError(
-                                f"Multiple fastq files found for sample {sample_name} with read group {read_group}. This pipeline expects only one fastq file per sample and read group."
+                                f"Multiple fastq files ({observed_combinations[sample, read_group]} and {str(file_.resolve())}) matching the same sample {sample_name} and read group {read_group}. This pipeline expects only one fastq file per sample and read group."
                             )
                         )
                     else:
-                        observed_combinations.append((sample_name, read_group))
+                        observed_combinations[(sample_name, read_group)] = str(
+                            file_.resolve()
+                        )
                     sample = self.sample_dict.setdefault(match.group(1), {})
                     sample[f"R{read_group}"] = str(file_.resolve())
         if len(errors) == 0:
