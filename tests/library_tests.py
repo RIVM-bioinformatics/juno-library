@@ -171,7 +171,8 @@ class TestPipelineStartup(unittest.TestCase):
             "fake_dir_juno/clean_fastq",
             "fake_dir_juno/de_novo_assembly_filtered",
             "fake_dir_juno/identify_species",
-            "fake_wrong_fastq_names",
+            "fake_1_in_fastqname",
+            "fake_multiple_library_samples",
         ]
 
         fake_files = [
@@ -198,8 +199,12 @@ class TestPipelineStartup(unittest.TestCase):
             "fake_dir_juno/clean_fastq/1234_R1.fastq.gz",
             "fake_dir_juno/clean_fastq/1234_R2.fastq.gz",
             "fake_dir_juno/de_novo_assembly_filtered/1234.fasta",
-            "fake_wrong_fastq_names/1234_S001_PE_R1.fastq.gz",
-            "fake_wrong_fastq_names/1234_S001_PE_R2.fastq.gz",
+            "fake_1_in_fastqname/1234_1_R1.fastq.gz",
+            "fake_1_in_fastqname/1234_1_R2.fastq.gz",
+            "fake_multiple_library_samples/sample5_S1_L001_R1.fastq.gz",
+            "fake_multiple_library_samples/sample5_S1_L001_R2.fastq.gz",
+            "fake_multiple_library_samples/sample5_S1_L002_R1.fastq.gz",
+            "fake_multiple_library_samples/sample5_S1_L002_R2.fastq.gz",
         ]
 
         for folder in fake_dirs:
@@ -231,7 +236,8 @@ class TestPipelineStartup(unittest.TestCase):
             "fake_dir_juno/clean_fastq",
             "fake_dir_juno/de_novo_assembly_filtered",
             "fake_dir_juno/identify_species",
-            "fake_wrong_fastq_names",
+            "fake_1_in_fastqname",
+            "fake_multiple_library_samples",
         ]
 
         for folder in fake_dirs:
@@ -503,13 +509,23 @@ class TestPipelineStartup(unittest.TestCase):
             pipeline.juno_metadata, expected_metadata, pipeline.juno_metadata
         )
 
-    def test_fail_with_wrong_fastq_naming(self) -> None:
+    def test_fail_with_1_in_fastqname(self) -> None:
         """Testing the pipeline startup fails with wrong fastq naming (name
         contains _1_ in the sample name)"""
         with self.assertRaises(KeyError):
             pipeline = Pipeline(
                 **default_args,
-                argv=["-i", "fake_wrong_fastq_names"],
+                argv=["-i", "fake_1_in_fastqname"],
+                input_type="fastq",
+            )
+            pipeline.setup()
+
+    def test_fail_with_multiple_libraries_per_sample(self) -> None:
+        """Testing the pipeline startup fails with wrong fastq naming (multiple libraries per sample)"""
+        with self.assertRaises(KeyError):
+            pipeline = Pipeline(
+                **default_args,
+                argv=["-i", "fake_multiple_library_samples"],
                 input_type="fastq",
             )
             pipeline.setup()
