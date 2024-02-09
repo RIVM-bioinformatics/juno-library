@@ -403,6 +403,7 @@ class Pipeline:
         observed_combinations = {}
         errors = []
         for file_ in dir.iterdir():
+            filepath_ = str(file_.resolve())
             if validate_file_has_min_lines(file_, self.min_num_lines):
                 if match := pattern.fullmatch(file_.name):
                     sample_name = match.group(1)
@@ -412,17 +413,16 @@ class Pipeline:
                     # check if sample_name and read_group combination is already seen before
                     # if this happens, it might be that the sample is spread over multiple sequencing lanes
                     if (sample_name, read_group) in observed_combinations:
+                        observed_file = observed_combinations[sample_name, read_group]
                         errors.append(
                             KeyError(
-                                f"Multiple fastq files ({observed_combinations[sample, read_group]} and {str(file_.resolve())}) matching the same sample {sample_name} and read group {read_group}. This pipeline expects only one fastq file per sample and read group."
+                                f"Multiple fastq files ({observed_file} and {filepath_}) matching the same sample ({sample_name}) and read group ({read_group}). This pipeline expects only one fastq file per sample and read group."
                             )
                         )
                     else:
-                        observed_combinations[(sample_name, read_group)] = str(
-                            file_.resolve()
-                        )
+                        observed_combinations[(sample_name, read_group)] = filepath_
                     sample = self.sample_dict.setdefault(match.group(1), {})
-                    sample[f"R{read_group}"] = str(file_.resolve())
+                    sample[f"R{read_group}"] = filepath_
         if len(errors) == 0:
             return True
         if len(errors) == 1:
