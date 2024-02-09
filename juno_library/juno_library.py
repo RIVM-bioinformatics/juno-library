@@ -29,7 +29,7 @@ from juno_library.helper_functions import (
     get_commit_git,
     get_repo_url,
 )
-from typing import Any, Optional, Dict, cast
+from typing import Any, Optional, Dict, Tuple, cast
 import argparse
 
 
@@ -400,7 +400,7 @@ class Pipeline:
         pattern = re.compile(
             r"(.*?)(?:_S\d+_|_)(?:L\d{3}_)?(?:p)?R?(1|2)(?:_.*|\..*)?\.f(ast)?q(\.gz)?"
         )
-        observed_combinations = {}
+        observed_combinations: Dict[Tuple[str, str], str] = {}
         errors = []
         for file_ in dir.iterdir():
             filepath_ = str(file_.resolve())
@@ -423,11 +423,9 @@ class Pipeline:
                         observed_combinations[(sample_name, read_group)] = filepath_
                     sample = self.sample_dict.setdefault(match.group(1), {})
                     sample[f"R{read_group}"] = filepath_
-        if len(errors) == 0:
-            return True
         if len(errors) == 1:
             raise errors[0]
-        else:
+        elif len(errors) > 1:
             raise KeyError(errors)
 
     def __enlist_fasta_samples(self, dir: Path) -> None:
