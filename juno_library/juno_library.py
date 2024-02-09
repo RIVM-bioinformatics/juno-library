@@ -398,7 +398,7 @@ class Pipeline:
         # because they get confused with the identifiers of forward and reverse
         # reads.
         pattern = re.compile(
-            r"(.*?)(?:_S\d+_|_S\d+.|_|\.)(?:_L555_)?(?:p)?R?(1|2)(?:_.*\.|\..*\.|\.)f(ast)?q(\.gz)?"
+            r"(.*?)(?:_S\d+_|_)(?:L\d{3}_)?(?:p)?R?(1|2)(?:_.*|\..*)?\.f(ast)?q(\.gz)?"
         )
         for file_ in dir.iterdir():
             if validate_file_has_min_lines(file_, self.min_num_lines):

@@ -329,12 +329,14 @@ class TestPipelineStartup(unittest.TestCase):
         pipeline.setup()
         self.assertDictEqual(pipeline.sample_dict, expected_output)
 
-    def test_correctdir_fastq_with_L555_in_filename(self) -> None:
+    def test_correctdir_fastq_with_library_in_filename(self) -> None:
         """Testing the pipeline startup accepts fastq and fastq.gz files"""
 
         input_dir = Path("fake_dir_wsamples").resolve()
-        make_non_empty_file(input_dir.joinpath("12345_S182_L555_R1_001.fastq.gz"))
-        make_non_empty_file(input_dir.joinpath("12345_S182_L555_R2_001.fastq.gz"))
+        make_non_empty_file(input_dir.joinpath("sample3_S182_L555_R1_001.fastq.gz"))
+        make_non_empty_file(input_dir.joinpath("sample3_S182_L555_R2_001.fastq.gz"))
+        make_non_empty_file(input_dir.joinpath("sample4_S183_L001_R1_001.fastq.gz"))
+        make_non_empty_file(input_dir.joinpath("sample4_S183_L001_R2_001.fastq.gz"))
 
         expected_output = {
             "sample1": {
@@ -345,9 +347,13 @@ class TestPipelineStartup(unittest.TestCase):
                 "R1": str(input_dir.joinpath("sample2_R1_filt.fq")),
                 "R2": str(input_dir.joinpath("sample2_R2_filt.fq.gz")),
             },
-            "12345": {
-                "R1": str(input_dir.joinpath("12345_S182_L555_R1_001.fastq.gz")),
-                "R2": str(input_dir.joinpath("12345_S182_L555_R2_001.fastq.gz")),
+            "sample3": {
+                "R1": str(input_dir.joinpath("sample3_S182_L555_R1_001.fastq.gz")),
+                "R2": str(input_dir.joinpath("sample3_S182_L555_R2_001.fastq.gz")),
+            },
+            "sample4": {
+                "R1": str(input_dir.joinpath("sample4_S183_L001_R1_001.fastq.gz")),
+                "R2": str(input_dir.joinpath("sample4_S183_L001_R2_001.fastq.gz")),
             },
         }
         pipeline = Pipeline(
