@@ -31,7 +31,7 @@ setup(
     install_requires=[
         'dask',
         'mamba',
-        'numpy',
+        'numpy<2',
         'pandas',
         'pip>=19.2.0',
         'snakemake>=6.1.0',
