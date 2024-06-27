@@ -29,7 +29,7 @@ from juno_library.helper_functions import (
     get_commit_git,
     get_repo_url,
 )
-from typing import Any, Optional, Dict, Tuple, cast
+from typing import Any, Optional, Dict, Tuple, cast, List, Union
 import argparse
 
 
@@ -47,7 +47,7 @@ class Pipeline:
     pipeline_name: str
     pipeline_version: str
 
-    input_type: str = "both"
+    input_type: Union[str, List[str]] = "both"
     fasta_dir: Optional[Path] = None
     fastq_dir: Optional[Path] = None
     vcf_dir: Optional[Path] = None
@@ -96,16 +96,22 @@ class Pipeline:
     def __post_init__(
         self,
     ) -> None:
-        assert self.input_type in [
-            "fastq",
-            "fasta",
-            "both",
-            "vcf",
-            "bam",
-            "fastq_and_fasta",
-            "fastq_and_vcf",
-            "bam_and_vcf",
-        ], "input_type to be checked can only be 'fastq', 'fasta', 'vcf', 'bam', 'both'/'fastq_and_fasta', 'fastq_and_vcf' or 'bam_and_vcf'"
+        # TODO: remove this line when self.input_type is a list in all pipelines
+        if isinstance(self.input_type, str):
+            assert self.input_type in [
+                "fastq",
+                "fasta",
+                "both",
+                "vcf",
+                "bam",
+                "fastq_and_fasta",
+                "fastq_and_vcf",
+                "bam_and_vcf",
+            ], "if input_type is a str, the value can only be 'fastq', 'fasta', 'vcf', 'bam', 'both'/'fastq_and_fasta', 'fastq_and_vcf' or 'bam_and_vcf'"
+        elif isinstance(self.input_type, list):
+            assert all(
+                [x in ["fastq", "fasta", "vcf", "bam"] for x in self.input_type]
+            ), "if input_type is a list, the values can only be 'fastq', 'fasta', 'vcf' or 'bam'"
 
         self.snakemake_config["sample_sheet"] = str(self.sample_sheet)
         self.add_argument = self.parser.add_argument
@@ -352,6 +358,27 @@ class Pipeline:
 
         return args
 
+    def __parse_input_type(self) -> None:
+        """
+        Convert self.input_type to a list if it is a string.
+
+        This function can be deprecated when all pipelines have switched to using a list for self.input_type.
+
+        """
+        conversion_dict = {
+            "fastq": ["fastq"],
+            "fasta": ["fasta"],
+            "vcf": ["vcf"],
+            "bam": ["bam"],
+            "both": ["fastq", "fasta"],
+            "fastq_and_fasta": ["fastq", "fasta"],
+            "fastq_and_vcf": ["fastq", "vcf"],
+            "bam_and_vcf": ["bam", "vcf"],
+        }
+        # check if self.input_type is a str or a list
+        if isinstance(self.input_type, str):
+            self.input_type = conversion_dict[self.input_type]
+
     def __build_sample_dict(self) -> None:
         """Look for samples in input_dir and set self.sample_dict accordingly.
 
@@ -513,7 +540,7 @@ class Pipeline:
                 )
             )
         errors = []
-        if self.input_type in ["fastq", "both", "fastq_and_vcf", "fastq_and_fasta"]:
+        if "fastq" in self.input_type:
             for sample in self.sample_dict:
                 R1_present = "R1" in self.sample_dict[sample].keys()
                 R2_present = "R2" in self.sample_dict[sample].keys()
@@ -523,7 +550,7 @@ class Pipeline:
                             f"One of the paired fastq files (R1 or R2) are missing for sample {sample}. This pipeline ONLY ACCEPTS PAIRED READS. If you are sure you have complete paired-end reads, make sure to NOT USE _1 and _2 within your file names unless it is to differentiate paired fastq files or any unsupported character (Supported: letters, numbers, underscores)."
                         )
                     )
-        if self.input_type in ["fasta", "both", "fastq_and_fasta"]:
+        if "fasta" in self.input_type:
             for sample in self.sample_dict:
                 assembly_present = self.sample_dict[sample].keys()
                 if "assembly" not in assembly_present:
@@ -532,7 +559,7 @@ class Pipeline:
                             f"The assembly is missing for sample {sample}. This pipeline expects an assembly per sample."
                         )
                     )
-        if self.input_type in ["vcf", "fastq_and_vcf", "bam_and_vcf"]:
+        if "vcf" in self.input_type:
             for sample in self.sample_dict:
                 vcf_present = self.sample_dict[sample].keys()
                 if "vcf" not in vcf_present:
@@ -541,7 +568,7 @@ class Pipeline:
                             f"The VCF file is missing for sample {sample}. This pipeline expects a VCF per sample."
                         )
                     )
-        if self.input_type in ["bam", "bam_and_vcf"]:
+        if "bam" in self.input_type:
             for sample in self.sample_dict:
                 bam_present = self.sample_dict[sample].keys()
                 if "bam" not in bam_present:
