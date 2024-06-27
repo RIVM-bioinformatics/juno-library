@@ -358,6 +358,32 @@ class Pipeline:
 
         return args
 
+    def __check_input_dir(self, expected_files_dirs: List[str]) -> bool:
+        """
+        Check whether the input directory contains the expected files and/or directories.
+
+        Parameters
+        ----------
+        expected_files_dirs : List[str]
+            List of patterns that are expected to be found in the input directory.
+        
+        Returns
+        -------
+        bool
+            True if all expected files and/or directories are found in the input directory.
+
+        Notes
+        -----
+        Per pattern, multiple hits can be expected (e.g. multiple cgMLST output directories in one run).
+        This function does not distinguish between files and directories.
+
+        """
+        checks_all_patterns = [False] * len(expected_files_dirs)
+        for i, file_or_dir_pattern in enumerate(expected_files_dirs):
+            nr_files_this_pattern = len(list(self.input_dir.glob(file_or_dir_pattern)))
+            checks_all_patterns[i] = nr_files_this_pattern > 0
+        return all(checks_all_patterns)
+
     def __parse_input_type(self) -> None:
         """
         Convert self.input_type to a list if it is a string.
@@ -386,32 +412,50 @@ class Pipeline:
         juno_assembly and sets self.input_dir_is_juno_assembly_output.
         """
         self.sample_dict: dict[str, dict[str, str]] = {}
-        self.input_dir_is_juno_assembly_output = (
-            self.input_dir.joinpath("clean_fastq").exists()
-            and self.input_dir.joinpath("de_novo_assembly_filtered").exists()
+        self.input_dir_is_juno_assembly_output = self.__check_input_dir(
+            ["clean_fastq", "de_novo_assembly_filtered"]
         )
-        self.input_dir_is_juno_mapping_output = (
-            self.input_dir.joinpath("clean_fastq").exists()
-            and self.input_dir.joinpath("variants").exists()
-            and self.input_dir.joinpath("reference", "reference.fasta").exists()
+        self.input_dir_is_juno_mapping_output = self.__check_input_dir(
+            ["mapped_reads/duprem", "variants", "reference/reference.fasta"]
         )
+        print(self.input_dir_is_juno_mapping_output)
+        self.input_dir_is_juno_variant_typing_output = self.__check_input_dir(
+            ["*/consensus", "audit_trail"]
+        )
+        self.input_dir_is_juno_cgmlst_output = self.__check_input_dir(["cgmlst/*", "audit_trail"])
         if self.input_dir_is_juno_assembly_output:
             self.__enlist_fastq_samples(self.input_dir.joinpath("clean_fastq"))
-            self.__enlist_fasta_samples(
-                self.input_dir.joinpath("de_novo_assembly_filtered")
+            self.__enlist_samples_custom_extension(
+                self.input_dir.joinpath("de_novo_assembly_filtered"),
+                extension=".fasta",
+                key="assembly",
             )
         elif self.input_dir_is_juno_mapping_output:
-            self.__enlist_bam_samples(self.input_dir.joinpath("mapped_reads", "duprem"))
-            self.__enlist_vcf_samples(self.input_dir.joinpath("variants"))
+            self.__enlist_samples_custom_extension(self.input_dir.joinpath("mapped_reads", "duprem"), extension=".bam", key="bam")
+            self.__enlist_samples_custom_extension(self.input_dir.joinpath("variants"), extension=".vcf", key="vcf")
+        elif self.input_dir_is_juno_variant_typing_output:
+            consensus_paths = list(self.input_dir.glob("*/consensus"))
+            assert len(consensus_paths) == 1, error_formatter(
+                f"""Expected to find exactly one consensus directory in the input directory ({self.input_dir}).\n
+                Found {len(list(consensus_paths))}."""
+            )
+            self.__enlist_samples_custom_extension(consensus_paths[0], extension=".fasta", key="assembly")
+        elif self.input_dir_is_juno_cgmlst_output:
+            raise NotImplementedError("Using juno-cgmlst output is not yet implemented.")
+            # TODO: juno-cgmlst should output a TSV file with the cgmlst results per sample, which should be enlisted here. Can be multiple schemes per sample.
+            # Could be in the format: {sample: {cgmlst_scheme1: cgmlst_file1, cgmlst_scheme2: cgmlst_file2}}
+            # self.__enlist_samples_custom_extension(self.input_dir.joinpath("cgmlst"), extension=".tsv", key="cgmlst")
         else:
-            if self.input_type in ["fastq", "both", "fastq_and_vcf", "fastq_and_fasta"]:
+            self.__parse_input_type() # TODO: remove this line when self.input_type is a list in all pipelines
+            if "fastq" in self.input_type:
                 self.__enlist_fastq_samples(self.input_dir)
-            if self.input_type in ["fasta", "both", "fastq_and_fasta"]:
-                self.__enlist_fasta_samples(self.input_dir)
-            if self.input_type in ["vcf", "fastq_and_vcf", "bam_and_vcf"]:
-                self.__enlist_vcf_samples(self.input_dir)
-            if self.input_type in ["bam", "bam_and_vcf"]:
-                self.__enlist_bam_samples(self.input_dir)
+            if "fasta" in self.input_type:
+                self.__enlist_samples_custom_extension(self.input_dir, extension=".fasta", key="assembly")
+            if "vcf" in self.input_type:
+                self.__enlist_samples_custom_extension(self.input_dir, extension=".vcf", key="vcf")
+                self.__enlist_reference(self.input_dir)
+            if "bam" in self.input_type:
+                self.__enlist_samples_custom_extension(self.input_dir, extension=".bam", key="bam")
 
     def __enlist_fastq_samples(self, dir: Path) -> None:
         """Function to enlist the fastq files found in the input directory.
@@ -424,6 +468,7 @@ class Pipeline:
         # It does NOT accept sample names that contain _1 or _2 in the name
         # because they get confused with the identifiers of forward and reverse
         # reads.
+        # TODO: add functionality to enlist samples with only one fastq file for ONT sequencing
         pattern = re.compile(
             r"(.*?)(?:_S\d+_|_)(?:L\d{3}_)?(?:p)?R?(1|2)(?:_.*|\..*)?\.f(ast)?q(\.gz)?"
         )
@@ -455,13 +500,71 @@ class Pipeline:
         elif len(errors) > 1:
             raise KeyError(errors)
 
-    def __enlist_fasta_samples(self, dir: Path) -> None:
-        """Function to enlist the fasta files found in the input directory.
+    # def __enlist_fasta_samples(self, dir: Path) -> None:
+    #     """Function to enlist the fasta files found in the input directory.
+    #     Adds or updates self.sample_dict with the form:
+
+    #     {sample: {assembly: fasta_file}}
+    #     """
+    #     pattern = re.compile("(.*?).fasta")
+    #     for file_ in dir.iterdir():
+    #         if validate_file_has_min_lines(file_, self.min_num_lines):
+    #             if match := pattern.fullmatch(file_.name):
+    #                 sample_name = match.group(1)
+    #                 if sample_name in self.excluded_samples:
+    #                     continue
+    #                 sample = self.sample_dict.setdefault(sample_name, {})
+    #                 sample["assembly"] = str(file_.resolve())
+
+    # def __enlist_vcf_samples(self, dir: Path) -> None:
+    #     """Function to enlist VCF files found in the input directory.
+    #     Also looks for a reference but does not fail if it's not found.
+    #     Adds or updates self.sample_dict with the form:
+
+    #     {sample: {vcf: vcf_file}}
+    #     """
+    #     ref_path = dir.parent.joinpath("reference", "reference.fasta")
+    #     pattern = re.compile("(.*?).vcf")
+    #     for file_ in dir.iterdir():
+    #         if validate_file_has_min_lines(file_, self.min_num_lines):
+    #             if match := pattern.fullmatch(file_.name):
+    #                 sample_name = match.group(1)
+    #                 if sample_name in self.excluded_samples:
+    #                     continue
+    #                 sample = self.sample_dict.setdefault(sample_name, {})
+    #                 sample["vcf"] = str(file_.resolve())
+    #                 if ref_path.exists():
+    #                     sample["reference"] = str(ref_path.resolve())
+
+    def __enlist_reference(self, dir: Path) -> None:
+        ref_path = dir.joinpath("reference", "reference.fasta")
+        for sample in self.sample_dict:
+            if "reference" not in self.sample_dict[sample]:
+                self.sample_dict[sample]["reference"] = str(ref_path.resolve())
+
+    # def __enlist_bam_samples(self, dir: Path) -> None:
+    #     """Function to enlist BAM files found in the input directory.
+    #     Adds or updates self.sample_dict with the form:
+
+    #     {sample: {bam: bam_file}}
+    #     """
+    #     pattern = re.compile("(.*?).bam")
+    #     for file_ in dir.iterdir():
+    #         if validate_file_has_min_lines(file_, self.min_num_lines):
+    #             if match := pattern.fullmatch(file_.name):
+    #                 sample_name = match.group(1)
+    #                 if sample_name in self.excluded_samples:
+    #                     continue
+    #                 sample = self.sample_dict.setdefault(sample_name, {})
+    #                 sample["bam"] = str(file_.resolve())
+
+    def __enlist_samples_custom_extension(self, dir: Path, extension: str, key: str) -> None:
+        """Function to enlist files found in the input directory based on a custom extension.
         Adds or updates self.sample_dict with the form:
 
-        {sample: {assembly: fasta_file}}
+        {sample: {key: file.extension}}
         """
-        pattern = re.compile("(.*?).fasta")
+        pattern = re.compile(f"(.*?){extension}")
         for file_ in dir.iterdir():
             if validate_file_has_min_lines(file_, self.min_num_lines):
                 if match := pattern.fullmatch(file_.name):
@@ -469,43 +572,7 @@ class Pipeline:
                     if sample_name in self.excluded_samples:
                         continue
                     sample = self.sample_dict.setdefault(sample_name, {})
-                    sample["assembly"] = str(file_.resolve())
-
-    def __enlist_vcf_samples(self, dir: Path) -> None:
-        """Function to enlist VCF files found in the input directory.
-        Also looks for a reference but does not fail if it's not found.
-        Adds or updates self.sample_dict with the form:
-
-        {sample: {vcf: vcf_file}}
-        """
-        ref_path = dir.parent.joinpath("reference", "reference.fasta")
-        pattern = re.compile("(.*?).vcf")
-        for file_ in dir.iterdir():
-            if validate_file_has_min_lines(file_, self.min_num_lines):
-                if match := pattern.fullmatch(file_.name):
-                    sample_name = match.group(1)
-                    if sample_name in self.excluded_samples:
-                        continue
-                    sample = self.sample_dict.setdefault(sample_name, {})
-                    sample["vcf"] = str(file_.resolve())
-                    if ref_path.exists():
-                        sample["reference"] = str(ref_path.resolve())
-
-    def __enlist_bam_samples(self, dir: Path) -> None:
-        """Function to enlist BAM files found in the input directory.
-        Adds or updates self.sample_dict with the form:
-
-        {sample: {bam: bam_file}}
-        """
-        pattern = re.compile("(.*?).bam")
-        for file_ in dir.iterdir():
-            if validate_file_has_min_lines(file_, self.min_num_lines):
-                if match := pattern.fullmatch(file_.name):
-                    sample_name = match.group(1)
-                    if sample_name in self.excluded_samples:
-                        continue
-                    sample = self.sample_dict.setdefault(sample_name, {})
-                    sample["bam"] = str(file_.resolve())
+                    sample[key] = str(file_.resolve())
 
     def __set_exluded_samples(self) -> None:
         """Read self.exclusion file and set self.excluded_sameples.
