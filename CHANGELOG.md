@@ -1,5 +1,19 @@
 # Changelog
 
+## [2.2.0](https://github.com/RIVM-bioinformatics/juno-library/compare/v2.1.3...v2.2.0) (2024-07-25)
+
+
+### Features
+
+* allow list as input type ([254e1c8](https://github.com/RIVM-bioinformatics/juno-library/commit/254e1c81234acfded7873cffe06e6f7cebcc3e41))
+
+
+### Bug Fixes
+
+* fix typing ([a135eb9](https://github.com/RIVM-bioinformatics/juno-library/commit/a135eb975d5b8bd93132752f4a34023c8ee35d3d))
+* force tuple ([46c3608](https://github.com/RIVM-bioinformatics/juno-library/commit/46c3608fe70ad00c578d945c19371227084f5580))
+* switch input_type to tuple ([f406df2](https://github.com/RIVM-bioinformatics/juno-library/commit/f406df298b376e4ea014e581ccbf9012e8350990))
+
 ## [2.1.3](https://github.com/RIVM-bioinformatics/juno-library/compare/v2.1.2...v2.1.3) (2024-02-09)
 
 
