@@ -403,7 +403,7 @@ class Pipeline:
         }
         # check if self.input_type is a str or a tuple
         if isinstance(self.input_type, str):
-            self.input_type = tuple(conversion_dict[self.input_type]) 
+            self.input_type = tuple(conversion_dict[self.input_type])
 
     def __build_sample_dict(self) -> None:
         """Look for samples in input_dir and set self.sample_dict accordingly.
