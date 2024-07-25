@@ -418,7 +418,6 @@ class Pipeline:
         self.input_dir_is_juno_mapping_output = self.__check_input_dir(
             ["mapped_reads/duprem", "variants", "reference/reference.fasta"]
         )
-        print(self.input_dir_is_juno_mapping_output)
         self.input_dir_is_juno_variant_typing_output = self.__check_input_dir(
             ["*/consensus", "audit_trail"]
         )

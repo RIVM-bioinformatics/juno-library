@@ -639,7 +639,7 @@ class TestPipelineStartup(unittest.TestCase):
         )
         with self.assertRaises(NotImplementedError):
             pipeline.setup()
-            self.assertTrue(pipeline.input_dir_is_juno_variant_typing_output)
+            self.assertTrue(pipeline.input_dir_is_juno_cgmlst_output)
 
     def test_files_smaller_than_minlen(self) -> None:
         """Testing the pipeline startup fails if you set a min_num_lines
