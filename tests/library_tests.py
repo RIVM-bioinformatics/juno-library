@@ -164,6 +164,7 @@ class TestPipelineStartup(unittest.TestCase):
         fake_dirs = [
             "fake_dir_empty",
             "fake_dir_wsamples",
+            "fake_dir_wsamples/reference",
             "fake_dir_wsamples_exclusion",
             "exclusion_file",
             "fake_dir_incomplete",
@@ -173,6 +174,11 @@ class TestPipelineStartup(unittest.TestCase):
             "fake_dir_juno/identify_species",
             "fake_1_in_fastqname",
             "fake_multiple_library_samples",
+            "fake_dir_juno_assembly_output",
+            "fake_dir_juno_mapping_output",
+            "fake_dir_juno_variant_typing_output",
+            "fake_dir_juno_cgmlst_output",
+            "fake_dir_wsamples_juno_cgmlst",
         ]
 
         fake_files = [
@@ -184,6 +190,7 @@ class TestPipelineStartup(unittest.TestCase):
             "fake_dir_wsamples/sample2.fasta",
             "fake_dir_wsamples/sample1.vcf",
             "fake_dir_wsamples/sample2.vcf",
+            "fake_dir_wsamples/reference/reference.fasta",
             "fake_dir_wsamples_exclusion/sample1_R1.fastq",
             "fake_dir_wsamples_exclusion/sample1_R2.fastq.gz",
             "fake_dir_wsamples_exclusion/sample2_R1_filt.fq",
@@ -208,7 +215,7 @@ class TestPipelineStartup(unittest.TestCase):
         ]
 
         for folder in fake_dirs:
-            Path(folder).mkdir(exist_ok=True)
+            Path(folder).mkdir(exist_ok=True, parents=True)
         for file_ in fake_files:
             make_non_empty_file(file_)
         bracken_dir = Path("fake_dir_juno").joinpath("identify_species")
@@ -229,6 +236,7 @@ class TestPipelineStartup(unittest.TestCase):
         fake_dirs = [
             "fake_dir_empty",
             "fake_dir_wsamples",
+            "fake_dir_wsamples_library_names",
             "fake_dir_wsamples_exclusion",
             "exclusion_file",
             "fake_dir_incomplete",
@@ -238,6 +246,11 @@ class TestPipelineStartup(unittest.TestCase):
             "fake_dir_juno/identify_species",
             "fake_1_in_fastqname",
             "fake_multiple_library_samples",
+            "fake_dir_juno_assembly_output",
+            "fake_dir_juno_mapping_output",
+            "fake_dir_juno_variant_typing_output",
+            "fake_dir_juno_cgmlst_output",
+            "fake_dir_wsamples_juno_cgmlst",
         ]
 
         for folder in fake_dirs:
@@ -338,7 +351,13 @@ class TestPipelineStartup(unittest.TestCase):
     def test_correctdir_fastq_with_library_in_filename(self) -> None:
         """Testing the pipeline startup accepts fastq and fastq.gz files"""
 
-        input_dir = Path("fake_dir_wsamples").resolve()
+        input_dir = Path("fake_dir_wsamples_library_names").resolve()
+        input_dir.mkdir(exist_ok=True, parents=True)
+
+        make_non_empty_file(input_dir.joinpath("sample1_R1.fastq"))
+        make_non_empty_file(input_dir.joinpath("sample1_R2.fastq.gz"))
+        make_non_empty_file(input_dir.joinpath("sample2_R1_filt.fq"))
+        make_non_empty_file(input_dir.joinpath("sample2_R2_filt.fq.gz"))
         make_non_empty_file(input_dir.joinpath("sample3_S182_L555_R1_001.fastq.gz"))
         make_non_empty_file(input_dir.joinpath("sample3_S182_L555_R2_001.fastq.gz"))
         make_non_empty_file(input_dir.joinpath("sample4_S183_L001_R1_001.fastq.gz"))
@@ -438,6 +457,11 @@ class TestPipelineStartup(unittest.TestCase):
                     Path("fake_dir_wsamples").joinpath("sample1_R2.fastq.gz").resolve()
                 ),
                 "vcf": str(Path("fake_dir_wsamples").joinpath("sample1.vcf").resolve()),
+                "reference": str(
+                    Path("fake_dir_wsamples")
+                    .joinpath("reference", "reference.fasta")
+                    .resolve()
+                ),
             },
             "sample2": {
                 "R1": str(
@@ -449,6 +473,11 @@ class TestPipelineStartup(unittest.TestCase):
                     .resolve()
                 ),
                 "vcf": str(Path("fake_dir_wsamples").joinpath("sample2.vcf").resolve()),
+                "reference": str(
+                    Path("fake_dir_wsamples")
+                    .joinpath("reference", "reference.fasta")
+                    .resolve()
+                ),
             },
         }
         pipeline = Pipeline(
@@ -458,6 +487,208 @@ class TestPipelineStartup(unittest.TestCase):
         pipeline.get_metadata_from_csv_file()
         self.assertDictEqual(pipeline.sample_dict, expected_output)
         self.assertIsNone(pipeline.juno_metadata)
+
+    def test_correctdir_cgmlst(self) -> None:
+        """Testing the pipeline startup accepts juno-cgmlst"""
+
+        input_dir = Path("fake_dir_wsamples_juno_cgmlst").resolve()
+        input_dir.mkdir(exist_ok=True, parents=True)
+        input_dir.joinpath("cgmlst", "escherichia", "per_sample").mkdir(
+            exist_ok=True, parents=True
+        )
+        input_dir.joinpath("cgmlst", "stec", "per_sample").mkdir(
+            exist_ok=True, parents=True
+        )
+        input_dir.joinpath("cgmlst", "shigella", "per_sample").mkdir(
+            exist_ok=True, parents=True
+        )
+        input_dir.joinpath("audit_trail").mkdir(exist_ok=True, parents=True)
+
+        make_non_empty_file(
+            input_dir.joinpath("cgmlst", "escherichia", "per_sample", "sample1.tsv")
+        )
+        make_non_empty_file(
+            input_dir.joinpath("cgmlst", "stec", "per_sample", "sample1.tsv")
+        )
+        make_non_empty_file(
+            input_dir.joinpath("cgmlst", "shigella", "per_sample", "sample1.tsv")
+        )
+
+        expected_output = {
+            "sample1": {
+                "cgmlst_escherichia": str(
+                    Path("fake_dir_wsamples_juno_cgmlst")
+                    .joinpath("cgmlst", "escherichia", "per_sample", "sample1.tsv")
+                    .resolve()
+                ),
+                "cgmlst_stec": str(
+                    Path("fake_dir_wsamples_juno_cgmlst")
+                    .joinpath("cgmlst", "stec", "per_sample", "sample1.tsv")
+                    .resolve()
+                ),
+                "cgmlst_shigella": str(
+                    Path("fake_dir_wsamples_juno_cgmlst")
+                    .joinpath("cgmlst", "shigella", "per_sample", "sample1.tsv")
+                    .resolve()
+                ),
+            },
+        }
+        pipeline = Pipeline(
+            **default_args,
+            argv=["-i", "fake_dir_wsamples_juno_cgmlst"],
+        )
+        with self.assertRaises(NotImplementedError):
+            pipeline.setup()
+            self.assertDictEqual(pipeline.sample_dict, expected_output)
+
+    def test_correctdir_with_input_type_as_tuple(self) -> None:
+        """Testing the pipeline startup accepts both types"""
+
+        expected_output = {
+            "sample1": {
+                "R1": str(
+                    Path("fake_dir_wsamples").joinpath("sample1_R1.fastq").resolve()
+                ),
+                "R2": str(
+                    Path("fake_dir_wsamples").joinpath("sample1_R2.fastq.gz").resolve()
+                ),
+                "assembly": str(
+                    Path("fake_dir_wsamples").joinpath("sample1.fasta").resolve()
+                ),
+            },
+            "sample2": {
+                "R1": str(
+                    Path("fake_dir_wsamples").joinpath("sample2_R1_filt.fq").resolve()
+                ),
+                "R2": str(
+                    Path("fake_dir_wsamples")
+                    .joinpath("sample2_R2_filt.fq.gz")
+                    .resolve()
+                ),
+                "assembly": str(
+                    Path("fake_dir_wsamples").joinpath("sample2.fasta").resolve()
+                ),
+            },
+        }
+        pipeline = Pipeline(
+            **default_args,
+            argv=["-i", "fake_dir_wsamples"],
+            input_type=("fastq", "fasta"),
+        )
+        pipeline.setup()
+        pipeline.get_metadata_from_csv_file()
+        print(pipeline.sample_dict)
+        self.assertDictEqual(pipeline.sample_dict, expected_output)
+        self.assertIsNone(pipeline.juno_metadata)
+
+    def test_recognize_juno_assembly_output(self) -> None:
+        """
+        Testing that the pipeline recognizes the output of the Juno assembly pipeline
+        """
+
+        input_dir = Path("fake_dir_juno_assembly_output").resolve()
+        input_dir.mkdir(exist_ok=True, parents=True)
+        input_dir.joinpath("clean_fastq").mkdir(exist_ok=True, parents=True)
+        input_dir.joinpath("de_novo_assembly_filtered").mkdir(
+            exist_ok=True, parents=True
+        )
+
+        make_non_empty_file(input_dir.joinpath("clean_fastq", "sample_A_R1.fastq.gz"))
+        make_non_empty_file(input_dir.joinpath("clean_fastq", "sample_A_R2.fastq.gz"))
+        make_non_empty_file(
+            input_dir.joinpath("de_novo_assembly_filtered", "sample_A.fasta")
+        )
+
+        pipeline = Pipeline(
+            **default_args, argv=["-i", str(input_dir)], input_type="both"
+        )
+        pipeline.setup()
+        self.assertTrue(pipeline.input_dir_is_juno_assembly_output)
+
+        pipeline_input_type_list = Pipeline(
+            **default_args, argv=["-i", str(input_dir)], input_type=("fastq", "fasta")
+        )
+        pipeline_input_type_list.setup()
+        self.assertTrue(pipeline_input_type_list.input_dir_is_juno_assembly_output)
+
+    def test_recognize_juno_mapping_output(self) -> None:
+        """
+        Testing that the pipeline recognizes the output of the Juno mapping pipeline
+        """
+
+        input_dir = Path("fake_dir_juno_mapping_output").resolve()
+        input_dir.mkdir(exist_ok=True, parents=True)
+        input_dir.joinpath("mapped_reads", "duprem").mkdir(exist_ok=True, parents=True)
+        input_dir.joinpath("variants").mkdir(exist_ok=True, parents=True)
+        input_dir.joinpath("reference").mkdir(exist_ok=True, parents=True)
+
+        make_non_empty_file(
+            input_dir.joinpath("mapped_reads", "duprem", "sample_A.bam")
+        )
+        make_non_empty_file(input_dir.joinpath("variants", "sample_A.vcf"))
+        make_non_empty_file(input_dir.joinpath("reference", "reference.fasta"))
+
+        pipeline = Pipeline(
+            **default_args, argv=["-i", str(input_dir)], input_type=("bam", "vcf")
+        )
+        pipeline.setup()
+        self.assertTrue(pipeline.input_dir_is_juno_mapping_output)
+
+    def test_recognize_juno_variant_typing_output(self) -> None:
+        """
+        Testing that the pipeline recognizes the output of the Juno variant typing pipeline
+        """
+
+        input_dir = Path("fake_dir_juno_variant_typing_output").resolve()
+        input_dir.mkdir(exist_ok=True, parents=True)
+        input_dir.joinpath("mtb_typing", "consensus").mkdir(exist_ok=True, parents=True)
+        input_dir.joinpath("audit_trail").mkdir(exist_ok=True, parents=True)
+
+        make_non_empty_file(
+            input_dir.joinpath("mtb_typing", "consensus", "sample_A.fasta")
+        )
+
+        pipeline = Pipeline(
+            **default_args, argv=["-i", str(input_dir)], input_type=("fasta",)
+        )
+        pipeline.setup()
+        self.assertTrue(pipeline.input_dir_is_juno_variant_typing_output)
+
+    def test_recognize_juno_cgmlst_output(self) -> None:
+        """
+        Testing that the pipeline recognizes the output of the Juno cgmlst pipeline
+        """
+
+        input_dir = Path("fake_dir_juno_cgmlst_output").resolve()
+        input_dir.mkdir(exist_ok=True, parents=True)
+        input_dir.joinpath("cgmlst", "escherichia", "per_sample").mkdir(
+            exist_ok=True, parents=True
+        )
+        input_dir.joinpath("cgmlst", "shigella", "per_sample").mkdir(
+            exist_ok=True, parents=True
+        )
+        input_dir.joinpath("cgmlst", "stec", "per_sample").mkdir(
+            exist_ok=True, parents=True
+        )
+        input_dir.joinpath("audit_trail").mkdir(exist_ok=True, parents=True)
+
+        make_non_empty_file(
+            input_dir.joinpath("cgmlst", "escherichia", "per_sample", "sample_A.tsv")
+        )
+        make_non_empty_file(
+            input_dir.joinpath("cgmlst", "stec", "per_sample", "sample_A.tsv")
+        )
+        make_non_empty_file(
+            input_dir.joinpath("cgmlst", "shigella", "per_sample", "sample_A.tsv")
+        )
+
+        pipeline = Pipeline(
+            **default_args,
+            argv=["-i", str(input_dir)],
+        )
+        with self.assertRaises(NotImplementedError):
+            pipeline.setup()
+            self.assertTrue(pipeline.input_dir_is_juno_cgmlst_output)
 
     def test_files_smaller_than_minlen(self) -> None:
         """Testing the pipeline startup fails if you set a min_num_lines
