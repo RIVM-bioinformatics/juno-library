@@ -457,7 +457,11 @@ class TestPipelineStartup(unittest.TestCase):
                     Path("fake_dir_wsamples").joinpath("sample1_R2.fastq.gz").resolve()
                 ),
                 "vcf": str(Path("fake_dir_wsamples").joinpath("sample1.vcf").resolve()),
-                "reference": str(Path("fake_dir_wsamples").joinpath("reference", "reference.fasta").resolve()),
+                "reference": str(
+                    Path("fake_dir_wsamples")
+                    .joinpath("reference", "reference.fasta")
+                    .resolve()
+                ),
             },
             "sample2": {
                 "R1": str(
@@ -469,7 +473,11 @@ class TestPipelineStartup(unittest.TestCase):
                     .resolve()
                 ),
                 "vcf": str(Path("fake_dir_wsamples").joinpath("sample2.vcf").resolve()),
-                "reference": str(Path("fake_dir_wsamples").joinpath("reference", "reference.fasta").resolve()),
+                "reference": str(
+                    Path("fake_dir_wsamples")
+                    .joinpath("reference", "reference.fasta")
+                    .resolve()
+                ),
             },
         }
         pipeline = Pipeline(
@@ -485,30 +493,49 @@ class TestPipelineStartup(unittest.TestCase):
 
         input_dir = Path("fake_dir_wsamples_juno_cgmlst").resolve()
         input_dir.mkdir(exist_ok=True, parents=True)
-        input_dir.joinpath("cgmlst", "escherichia", "per_sample").mkdir(exist_ok=True, parents=True)
-        input_dir.joinpath("cgmlst", "stec", "per_sample").mkdir(exist_ok=True, parents=True)
-        input_dir.joinpath("cgmlst", "shigella", "per_sample").mkdir(exist_ok=True, parents=True)
+        input_dir.joinpath("cgmlst", "escherichia", "per_sample").mkdir(
+            exist_ok=True, parents=True
+        )
+        input_dir.joinpath("cgmlst", "stec", "per_sample").mkdir(
+            exist_ok=True, parents=True
+        )
+        input_dir.joinpath("cgmlst", "shigella", "per_sample").mkdir(
+            exist_ok=True, parents=True
+        )
         input_dir.joinpath("audit_trail").mkdir(exist_ok=True, parents=True)
 
-        make_non_empty_file(input_dir.joinpath("cgmlst", "escherichia", "per_sample", "sample1.tsv"))
-        make_non_empty_file(input_dir.joinpath("cgmlst", "stec", "per_sample", "sample1.tsv"))
-        make_non_empty_file(input_dir.joinpath("cgmlst", "shigella", "per_sample", "sample1.tsv"))
+        make_non_empty_file(
+            input_dir.joinpath("cgmlst", "escherichia", "per_sample", "sample1.tsv")
+        )
+        make_non_empty_file(
+            input_dir.joinpath("cgmlst", "stec", "per_sample", "sample1.tsv")
+        )
+        make_non_empty_file(
+            input_dir.joinpath("cgmlst", "shigella", "per_sample", "sample1.tsv")
+        )
 
         expected_output = {
             "sample1": {
                 "cgmlst_escherichia": str(
-                    Path("fake_dir_wsamples_juno_cgmlst").joinpath("cgmlst","escherichia","per_sample","sample1.tsv").resolve()
+                    Path("fake_dir_wsamples_juno_cgmlst")
+                    .joinpath("cgmlst", "escherichia", "per_sample", "sample1.tsv")
+                    .resolve()
                 ),
                 "cgmlst_stec": str(
-                    Path("fake_dir_wsamples_juno_cgmlst").joinpath("cgmlst","stec","per_sample","sample1.tsv").resolve()
+                    Path("fake_dir_wsamples_juno_cgmlst")
+                    .joinpath("cgmlst", "stec", "per_sample", "sample1.tsv")
+                    .resolve()
                 ),
                 "cgmlst_shigella": str(
-                    Path("fake_dir_wsamples_juno_cgmlst").joinpath("cgmlst","shigella","per_sample","sample1.tsv").resolve()
+                    Path("fake_dir_wsamples_juno_cgmlst")
+                    .joinpath("cgmlst", "shigella", "per_sample", "sample1.tsv")
+                    .resolve()
                 ),
             },
         }
         pipeline = Pipeline(
-            **default_args, argv=["-i", "fake_dir_wsamples_juno_cgmlst"],
+            **default_args,
+            argv=["-i", "fake_dir_wsamples_juno_cgmlst"],
         )
         with self.assertRaises(NotImplementedError):
             pipeline.setup()
@@ -544,7 +571,9 @@ class TestPipelineStartup(unittest.TestCase):
             },
         }
         pipeline = Pipeline(
-            **default_args, argv=["-i", "fake_dir_wsamples"], input_type=["fastq", "fasta"]
+            **default_args,
+            argv=["-i", "fake_dir_wsamples"],
+            input_type=["fastq", "fasta"],
         )
         pipeline.setup()
         pipeline.get_metadata_from_csv_file()
@@ -560,11 +589,15 @@ class TestPipelineStartup(unittest.TestCase):
         input_dir = Path("fake_dir_juno_assembly_output").resolve()
         input_dir.mkdir(exist_ok=True, parents=True)
         input_dir.joinpath("clean_fastq").mkdir(exist_ok=True, parents=True)
-        input_dir.joinpath("de_novo_assembly_filtered").mkdir(exist_ok=True, parents=True)
+        input_dir.joinpath("de_novo_assembly_filtered").mkdir(
+            exist_ok=True, parents=True
+        )
 
         make_non_empty_file(input_dir.joinpath("clean_fastq", "sample_A_R1.fastq.gz"))
         make_non_empty_file(input_dir.joinpath("clean_fastq", "sample_A_R2.fastq.gz"))
-        make_non_empty_file(input_dir.joinpath("de_novo_assembly_filtered", "sample_A.fasta"))
+        make_non_empty_file(
+            input_dir.joinpath("de_novo_assembly_filtered", "sample_A.fasta")
+        )
 
         pipeline = Pipeline(
             **default_args, argv=["-i", str(input_dir)], input_type="both"
@@ -578,7 +611,6 @@ class TestPipelineStartup(unittest.TestCase):
         pipeline_input_type_list.setup()
         self.assertTrue(pipeline_input_type_list.input_dir_is_juno_assembly_output)
 
-
     def test_recognize_juno_mapping_output(self) -> None:
         """
         Testing that the pipeline recognizes the output of the Juno mapping pipeline
@@ -590,7 +622,9 @@ class TestPipelineStartup(unittest.TestCase):
         input_dir.joinpath("variants").mkdir(exist_ok=True, parents=True)
         input_dir.joinpath("reference").mkdir(exist_ok=True, parents=True)
 
-        make_non_empty_file(input_dir.joinpath("mapped_reads", "duprem", "sample_A.bam"))
+        make_non_empty_file(
+            input_dir.joinpath("mapped_reads", "duprem", "sample_A.bam")
+        )
         make_non_empty_file(input_dir.joinpath("variants", "sample_A.vcf"))
         make_non_empty_file(input_dir.joinpath("reference", "reference.fasta"))
 
@@ -599,7 +633,7 @@ class TestPipelineStartup(unittest.TestCase):
         )
         pipeline.setup()
         self.assertTrue(pipeline.input_dir_is_juno_mapping_output)
-    
+
     def test_recognize_juno_variant_typing_output(self) -> None:
         """
         Testing that the pipeline recognizes the output of the Juno variant typing pipeline
@@ -609,9 +643,11 @@ class TestPipelineStartup(unittest.TestCase):
         input_dir.mkdir(exist_ok=True, parents=True)
         input_dir.joinpath("mtb_typing", "consensus").mkdir(exist_ok=True, parents=True)
         input_dir.joinpath("audit_trail").mkdir(exist_ok=True, parents=True)
-        
-        make_non_empty_file(input_dir.joinpath("mtb_typing", "consensus", "sample_A.fasta"))
-        
+
+        make_non_empty_file(
+            input_dir.joinpath("mtb_typing", "consensus", "sample_A.fasta")
+        )
+
         pipeline = Pipeline(
             **default_args, argv=["-i", str(input_dir)], input_type=["fasta"]
         )
@@ -625,17 +661,30 @@ class TestPipelineStartup(unittest.TestCase):
 
         input_dir = Path("fake_dir_juno_cgmlst_output").resolve()
         input_dir.mkdir(exist_ok=True, parents=True)
-        input_dir.joinpath("cgmlst", "escherichia", "per_sample").mkdir(exist_ok=True, parents=True)
-        input_dir.joinpath("cgmlst", "shigella", "per_sample").mkdir(exist_ok=True, parents=True)
-        input_dir.joinpath("cgmlst", "stec", "per_sample").mkdir(exist_ok=True, parents=True)
+        input_dir.joinpath("cgmlst", "escherichia", "per_sample").mkdir(
+            exist_ok=True, parents=True
+        )
+        input_dir.joinpath("cgmlst", "shigella", "per_sample").mkdir(
+            exist_ok=True, parents=True
+        )
+        input_dir.joinpath("cgmlst", "stec", "per_sample").mkdir(
+            exist_ok=True, parents=True
+        )
         input_dir.joinpath("audit_trail").mkdir(exist_ok=True, parents=True)
-        
-        make_non_empty_file(input_dir.joinpath("cgmlst", "escherichia", "per_sample", "sample_A.tsv"))
-        make_non_empty_file(input_dir.joinpath("cgmlst", "stec", "per_sample", "sample_A.tsv"))
-        make_non_empty_file(input_dir.joinpath("cgmlst", "shigella", "per_sample", "sample_A.tsv"))
-        
+
+        make_non_empty_file(
+            input_dir.joinpath("cgmlst", "escherichia", "per_sample", "sample_A.tsv")
+        )
+        make_non_empty_file(
+            input_dir.joinpath("cgmlst", "stec", "per_sample", "sample_A.tsv")
+        )
+        make_non_empty_file(
+            input_dir.joinpath("cgmlst", "shigella", "per_sample", "sample_A.tsv")
+        )
+
         pipeline = Pipeline(
-            **default_args, argv=["-i", str(input_dir)],
+            **default_args,
+            argv=["-i", str(input_dir)],
         )
         with self.assertRaises(NotImplementedError):
             pipeline.setup()
