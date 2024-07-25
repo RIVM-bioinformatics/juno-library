@@ -541,7 +541,7 @@ class TestPipelineStartup(unittest.TestCase):
             pipeline.setup()
             self.assertDictEqual(pipeline.sample_dict, expected_output)
 
-    def test_correctdir_with_input_type_as_list(self) -> None:
+    def test_correctdir_with_input_type_as_tuple(self) -> None:
         """Testing the pipeline startup accepts both types"""
 
         expected_output = {
@@ -573,7 +573,7 @@ class TestPipelineStartup(unittest.TestCase):
         pipeline = Pipeline(
             **default_args,
             argv=["-i", "fake_dir_wsamples"],
-            input_type=["fastq", "fasta"],
+            input_type=("fastq", "fasta"),
         )
         pipeline.setup()
         pipeline.get_metadata_from_csv_file()
@@ -606,7 +606,7 @@ class TestPipelineStartup(unittest.TestCase):
         self.assertTrue(pipeline.input_dir_is_juno_assembly_output)
 
         pipeline_input_type_list = Pipeline(
-            **default_args, argv=["-i", str(input_dir)], input_type=["fastq", "fasta"]
+            **default_args, argv=["-i", str(input_dir)], input_type=("fastq", "fasta")
         )
         pipeline_input_type_list.setup()
         self.assertTrue(pipeline_input_type_list.input_dir_is_juno_assembly_output)
@@ -629,7 +629,7 @@ class TestPipelineStartup(unittest.TestCase):
         make_non_empty_file(input_dir.joinpath("reference", "reference.fasta"))
 
         pipeline = Pipeline(
-            **default_args, argv=["-i", str(input_dir)], input_type=["bam", "vcf"]
+            **default_args, argv=["-i", str(input_dir)], input_type=("bam", "vcf")
         )
         pipeline.setup()
         self.assertTrue(pipeline.input_dir_is_juno_mapping_output)
@@ -649,7 +649,7 @@ class TestPipelineStartup(unittest.TestCase):
         )
 
         pipeline = Pipeline(
-            **default_args, argv=["-i", str(input_dir)], input_type=["fasta"]
+            **default_args, argv=["-i", str(input_dir)], input_type=("fasta")
         )
         pipeline.setup()
         self.assertTrue(pipeline.input_dir_is_juno_variant_typing_output)

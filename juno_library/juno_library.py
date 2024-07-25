@@ -47,7 +47,7 @@ class Pipeline:
     pipeline_name: str
     pipeline_version: str
 
-    input_type: Union[str, Tuple[str]] = "both"
+    input_type: Union[str, Tuple[str, ...]] = "both"
     fasta_dir: Optional[Path] = None
     fastq_dir: Optional[Path] = None
     vcf_dir: Optional[Path] = None
@@ -403,7 +403,7 @@ class Pipeline:
         }
         # check if self.input_type is a str or a tuple
         if isinstance(self.input_type, str):
-            self.input_type = conversion_dict[self.input_type]
+            self.input_type = tuple(conversion_dict[self.input_type]) 
 
     def __build_sample_dict(self) -> None:
         """Look for samples in input_dir and set self.sample_dict accordingly.
