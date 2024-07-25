@@ -392,10 +392,10 @@ class Pipeline:
 
         """
         conversion_dict = {
-            "fastq": ("fastq"),
-            "fasta": ("fasta"),
-            "vcf": ("vcf"),
-            "bam": ("bam"),
+            "fastq": ("fastq",),
+            "fasta": ("fasta",),
+            "vcf": ("vcf",),
+            "bam": ("bam",),
             "both": ("fastq", "fasta"),
             "fastq_and_fasta": ("fastq", "fasta"),
             "fastq_and_vcf": ("fastq", "vcf"),

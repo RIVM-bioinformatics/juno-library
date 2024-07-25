@@ -649,7 +649,7 @@ class TestPipelineStartup(unittest.TestCase):
         )
 
         pipeline = Pipeline(
-            **default_args, argv=["-i", str(input_dir)], input_type=("fasta")
+            **default_args, argv=["-i", str(input_dir)], input_type=("fasta",)
         )
         pipeline.setup()
         self.assertTrue(pipeline.input_dir_is_juno_variant_typing_output)
