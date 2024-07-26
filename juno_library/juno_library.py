@@ -440,6 +440,7 @@ class Pipeline:
             self.__enlist_samples_custom_extension(
                 self.input_dir.joinpath("variants"), extension=".vcf", key="vcf"
             )
+            self.__enlist_reference(self.input_dir)
         elif self.input_dir_is_juno_variant_typing_output:
             consensus_paths = list(self.input_dir.glob("*/consensus"))
             assert len(consensus_paths) == 1, error_formatter(
