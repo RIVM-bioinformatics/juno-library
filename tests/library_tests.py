@@ -633,7 +633,9 @@ class TestPipelineStartup(unittest.TestCase):
         )
         pipeline.setup()
         self.assertTrue(pipeline.input_dir_is_juno_mapping_output)
-        self.assertTrue("reference" in pipeline.sample_dict['sample_A']) # regression test fixed by commit c6856d688e06329673f6d4e0197a39a2f4152766
+        self.assertTrue(
+            "reference" in pipeline.sample_dict["sample_A"]
+        )  # regression test fixed by commit c6856d688e06329673f6d4e0197a39a2f4152766
 
     def test_recognize_juno_variant_typing_output(self) -> None:
         """

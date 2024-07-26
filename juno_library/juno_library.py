@@ -518,63 +518,11 @@ class Pipeline:
         elif len(errors) > 1:
             raise KeyError(errors)
 
-    # def __enlist_fasta_samples(self, dir: Path) -> None:
-    #     """Function to enlist the fasta files found in the input directory.
-    #     Adds or updates self.sample_dict with the form:
-
-    #     {sample: {assembly: fasta_file}}
-    #     """
-    #     pattern = re.compile("(.*?).fasta")
-    #     for file_ in dir.iterdir():
-    #         if validate_file_has_min_lines(file_, self.min_num_lines):
-    #             if match := pattern.fullmatch(file_.name):
-    #                 sample_name = match.group(1)
-    #                 if sample_name in self.excluded_samples:
-    #                     continue
-    #                 sample = self.sample_dict.setdefault(sample_name, {})
-    #                 sample["assembly"] = str(file_.resolve())
-
-    # def __enlist_vcf_samples(self, dir: Path) -> None:
-    #     """Function to enlist VCF files found in the input directory.
-    #     Also looks for a reference but does not fail if it's not found.
-    #     Adds or updates self.sample_dict with the form:
-
-    #     {sample: {vcf: vcf_file}}
-    #     """
-    #     ref_path = dir.parent.joinpath("reference", "reference.fasta")
-    #     pattern = re.compile("(.*?).vcf")
-    #     for file_ in dir.iterdir():
-    #         if validate_file_has_min_lines(file_, self.min_num_lines):
-    #             if match := pattern.fullmatch(file_.name):
-    #                 sample_name = match.group(1)
-    #                 if sample_name in self.excluded_samples:
-    #                     continue
-    #                 sample = self.sample_dict.setdefault(sample_name, {})
-    #                 sample["vcf"] = str(file_.resolve())
-    #                 if ref_path.exists():
-    #                     sample["reference"] = str(ref_path.resolve())
-
     def __enlist_reference(self, dir: Path) -> None:
         ref_path = dir.joinpath("reference", "reference.fasta")
         for sample in self.sample_dict:
             if "reference" not in self.sample_dict[sample]:
                 self.sample_dict[sample]["reference"] = str(ref_path.resolve())
-
-    # def __enlist_bam_samples(self, dir: Path) -> None:
-    #     """Function to enlist BAM files found in the input directory.
-    #     Adds or updates self.sample_dict with the form:
-
-    #     {sample: {bam: bam_file}}
-    #     """
-    #     pattern = re.compile("(.*?).bam")
-    #     for file_ in dir.iterdir():
-    #         if validate_file_has_min_lines(file_, self.min_num_lines):
-    #             if match := pattern.fullmatch(file_.name):
-    #                 sample_name = match.group(1)
-    #                 if sample_name in self.excluded_samples:
-    #                     continue
-    #                 sample = self.sample_dict.setdefault(sample_name, {})
-    #                 sample["bam"] = str(file_.resolve())
 
     def __enlist_samples_custom_extension(
         self, dir: Path, extension: str, key: str
