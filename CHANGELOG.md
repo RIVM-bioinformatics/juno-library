@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.2.1](https://github.com/RIVM-bioinformatics/juno-library/compare/v2.2.0...v2.2.1) (2024-07-26)
+
+
+### Bug Fixes
+
+* also enlist ref for juno mapping ([c6856d6](https://github.com/RIVM-bioinformatics/juno-library/commit/c6856d688e06329673f6d4e0197a39a2f4152766))
+
 ## [2.2.0](https://github.com/RIVM-bioinformatics/juno-library/compare/v2.1.3...v2.2.0) (2024-07-25)
 
 
