@@ -21,7 +21,15 @@ import yaml
 from pandas import read_csv
 from snakemake import snakemake
 
-from juno_library.helper_functions import (
+# from juno_library.helper_functions import (
+#     message_formatter,
+#     error_formatter,
+#     SnakemakeKwargsAction,
+#     validate_file_has_min_lines,
+#     get_commit_git,
+#     get_repo_url,
+# )
+from .helper_functions import (
     message_formatter,
     error_formatter,
     SnakemakeKwargsAction,
@@ -316,6 +324,14 @@ class Pipeline:
             action=SnakemakeKwargsAction,
             help="Extra arguments to be passed to snakemake API (https://snakemake.readthedocs.io/en/stable/api_reference/snakemake.html).",
         )
+        #added by Sohana
+        self.add_argument(
+            "--sequencing-tech",
+            type=str,
+            choices=["illumina", "nanopore"],
+            default="illumina",
+            help="Sequencing technology used for the reads. Default is 'illumina'.",
+        )
 
     def _parse_args(self) -> argparse.Namespace:
         """Function to parse args from the self.parser object and set
@@ -355,6 +371,9 @@ class Pipeline:
             self.exclusion_file = args.exclusion_file.resolve()
         except AttributeError:
             pass  # No exclusion file given on the command line
+
+        #added by Sohana
+        self.sequencing_tech: str = args.sequencing_tech
 
         return args
 
@@ -459,21 +478,68 @@ class Pipeline:
             # self.__enlist_samples_custom_extension(self.input_dir.joinpath("cgmlst"), extension=".tsv", key="cgmlst")
         else:
             self.__parse_input_type()  # TODO: remove this line when self.input_type is a list in all pipelines
-            if "fastq" in self.input_type:
-                self.__enlist_fastq_samples(self.input_dir)
-            if "fasta" in self.input_type:
-                self.__enlist_samples_custom_extension(
-                    self.input_dir, extension=".fasta", key="assembly"
-                )
-            if "vcf" in self.input_type:
-                self.__enlist_samples_custom_extension(
-                    self.input_dir, extension=".vcf", key="vcf"
-                )
-                self.__enlist_reference(self.input_dir)
-            if "bam" in self.input_type:
-                self.__enlist_samples_custom_extension(
-                    self.input_dir, extension=".bam", key="bam"
-                )
+            #added by Sohana
+            if self.sequencing_tech == "illumina":
+                if "fastq" in self.input_type:
+                    self.__enlist_fastq_samples(self.input_dir)
+                if "fasta" in self.input_type:
+                    self.__enlist_samples_custom_extension(
+                        self.input_dir, extension=".fasta", key="assembly"
+                    )
+                if "vcf" in self.input_type:
+                    self.__enlist_samples_custom_extension(
+                        self.input_dir, extension=".vcf", key="vcf"
+                    )
+                    self.__enlist_reference(self.input_dir)
+                if "bam" in self.input_type:
+                    self.__enlist_samples_custom_extension(
+                        self.input_dir, extension=".bam", key="bam"
+                    )
+            #added by Sohana
+            elif self.sequencing_tech == "nanopore":
+                self.__enlist_nanopore_samples(self.input_dir)
+
+    #added by Sohana
+    # def __enlist_nanopore_samples(self, dir: Path) -> None:
+    #     """Function to enlist the Nanopore files found in the input directory.
+    #     Adds or updates self.sample_dict with the form:
+
+    #     {sample: {nanopore: fastq_file}}
+    #     """
+    #     for sample_dir in dir.iterdir():
+    #         if sample_dir.is_dir() and sample_dir.name.startswith("barcode"):
+    #             fastq_files = list(sample_dir.glob("*.fastq.gz"))
+    #             if len(fastq_files) != 1:
+    #                 raise ValueError(
+    #                     f"Expected exactly one fastq file in {sample_dir}, found {len(fastq_files)}."
+    #                 )
+    #             sample_name = sample_dir.name
+    #             if sample_name in self.excluded_samples:
+    #                 continue
+    #             self.sample_dict[sample_name] = {"nanopore": str(fastq_files[0].resolve())}
+
+    def __enlist_nanopore_samples(self, dir: Path) -> None:
+        """Function to enlist the Nanopore files found in the input directory.
+        Adds or updates self.sample_dict with the form:
+
+        {sample: {nanopore: fastq_file}}
+        """
+        for sample_dir in dir.iterdir():
+            if sample_dir.is_dir() and sample_dir.name.startswith("barcode"):
+                fastq_files = list(sample_dir.glob("*.fastq.gz"))
+                if len(fastq_files) != 1:
+                    raise ValueError(
+                        f"Expected exactly one fastq file in {sample_dir}, found {len(fastq_files)}."
+                    )
+                sample_name = sample_dir.name
+                if sample_name in self.excluded_samples:
+                    continue
+                for fastq_file in fastq_files:
+                    self.sample_dict[str(fastq_file)] = {
+                        "barcode": sample_name,
+                        "nanopore_input": str(fastq_file.resolve())
+                    }
+
 
     def __enlist_fastq_samples(self, dir: Path) -> None:
         """Function to enlist the fastq files found in the input directory.
@@ -575,43 +641,65 @@ class Pipeline:
                 )
             )
         errors = []
-        if "fastq" in self.input_type:
+        if self.sequencing_tech == "illumina":
+            if "fastq" in self.input_type:
+                for sample in self.sample_dict:
+                    R1_present = "R1" in self.sample_dict[sample].keys()
+                    R2_present = "R2" in self.sample_dict[sample].keys()
+                    if not R1_present or not R2_present:
+                        errors.append(
+                            KeyError(
+                                f"One of the paired fastq files (R1 or R2) are missing for sample {sample}. This pipeline ONLY ACCEPTS PAIRED READS. If you are sure you have complete paired-end reads, make sure to NOT USE _1 and _2 within your file names unless it is to differentiate paired fastq files or any unsupported character (Supported: letters, numbers, underscores)."
+                            )
+                        )
+            if "fasta" in self.input_type:
+                for sample in self.sample_dict:
+                    assembly_present = self.sample_dict[sample].keys()
+                    if "assembly" not in assembly_present:
+                        errors.append(
+                            KeyError(
+                                f"The assembly is missing for sample {sample}. This pipeline expects an assembly per sample."
+                            )
+                        )
+            if "vcf" in self.input_type:
+                for sample in self.sample_dict:
+                    vcf_present = self.sample_dict[sample].keys()
+                    if "vcf" not in vcf_present:
+                        errors.append(
+                            KeyError(
+                                f"The VCF file is missing for sample {sample}. This pipeline expects a VCF per sample."
+                            )
+                        )
+            if "bam" in self.input_type:
+                for sample in self.sample_dict:
+                    bam_present = self.sample_dict[sample].keys()
+                    if "bam" not in bam_present:
+                        errors.append(
+                            KeyError(
+                                f"The BAM file is missing for sample {sample}. This pipeline expects a BAM per sample."
+                            )
+                        )
+        #added by Sohana
+        #Validaion for Nanopore data
+        # elif self.sequencing_tech == "nanopore":
+        #     for sample in self.sample_dict:
+        #         nanopore_present = self.sample_dict[sample].keys()
+        #         if "nanopore" not in nanopore_present:
+        #             errors.append(
+        #                 KeyError(
+        #                     f"The Nanopore fastq file is missing for sample {sample}. This pipeline expects a Nanopore fastq per sample."
+        #                 )
+        #             )
+        elif self.sequencing_tech == "nanopore":
             for sample in self.sample_dict:
-                R1_present = "R1" in self.sample_dict[sample].keys()
-                R2_present = "R2" in self.sample_dict[sample].keys()
-                if not R1_present or not R2_present:
+                nanopore_present = "nanopore_input" in self.sample_dict[sample].keys()
+                if not nanopore_present:
                     errors.append(
                         KeyError(
-                            f"One of the paired fastq files (R1 or R2) are missing for sample {sample}. This pipeline ONLY ACCEPTS PAIRED READS. If you are sure you have complete paired-end reads, make sure to NOT USE _1 and _2 within your file names unless it is to differentiate paired fastq files or any unsupported character (Supported: letters, numbers, underscores)."
+                            f"The Nanopore fastq file is missing for sample {sample}. This pipeline expects a Nanopore fastq per sample."
                         )
                     )
-        if "fasta" in self.input_type:
-            for sample in self.sample_dict:
-                assembly_present = self.sample_dict[sample].keys()
-                if "assembly" not in assembly_present:
-                    errors.append(
-                        KeyError(
-                            f"The assembly is missing for sample {sample}. This pipeline expects an assembly per sample."
-                        )
-                    )
-        if "vcf" in self.input_type:
-            for sample in self.sample_dict:
-                vcf_present = self.sample_dict[sample].keys()
-                if "vcf" not in vcf_present:
-                    errors.append(
-                        KeyError(
-                            f"The VCF file is missing for sample {sample}. This pipeline expects a VCF per sample."
-                        )
-                    )
-        if "bam" in self.input_type:
-            for sample in self.sample_dict:
-                bam_present = self.sample_dict[sample].keys()
-                if "bam" not in bam_present:
-                    errors.append(
-                        KeyError(
-                            f"The BAM file is missing for sample {sample}. This pipeline expects a BAM per sample."
-                        )
-                    )
+
         if len(errors) == 0:
             return True
         if len(errors) == 1:
