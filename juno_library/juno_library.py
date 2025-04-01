@@ -537,7 +537,12 @@ class Pipeline:
                 for fastq_file in fastq_files:
                     self.sample_dict[str(fastq_file)] = {
                         "barcode": sample_name,
-                        "nanopore_input": str(fastq_file.resolve())
+                        "filtlong_input": str(sample_name.resolve()),
+                        "genome_size": 5000000,
+                        # "nanopore_input": str(fastq_file.resolve())
+                        "nanopore_input": str(sample_name.resolve()),
+                        
+
                     }
 
 
