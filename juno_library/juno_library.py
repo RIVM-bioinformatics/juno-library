@@ -535,16 +535,13 @@ class Pipeline:
                 if sample_name in self.excluded_samples:
                     continue
                 for fastq_file in fastq_files:
-                    self.sample_dict[str(fastq_file)] = {
+                  
+                    self.sample_dict[str(fastq_file.name).replace('.fastq.gz', '')] = {
                         "barcode": sample_name,
                         "filtlong_input": str(sample_dir.resolve()),
                         "genome_size": 5000000,
-                        # "nanopore_input": str(fastq_file.resolve())
                         "nanopore_input": str(sample_dir.resolve()),
-                        
-
                     }
-
 
     def __enlist_fastq_samples(self, dir: Path) -> None:
         """Function to enlist the fastq files found in the input directory.
