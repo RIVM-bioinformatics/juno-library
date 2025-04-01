@@ -1,5 +1,7 @@
 import pathlib
 import argparse
+import sys
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
 from juno_library import Pipeline
 
 def test_pipeline(input_dir, sequencing_tech):
