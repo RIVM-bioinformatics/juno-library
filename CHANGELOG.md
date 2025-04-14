@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.2.2](https://github.com/RIVM-bioinformatics/juno-library/compare/v2.2.1...v2.2.2) (2025-04-14)
+
+
+### Bug Fixes
+
+* add new cluster and new snakemake flags to basic commands ([d85bae0](https://github.com/RIVM-bioinformatics/juno-library/commit/d85bae0a081dc998fff2c7e68caf27133854296c))
+
 ## [2.2.1](https://github.com/RIVM-bioinformatics/juno-library/compare/v2.2.0...v2.2.1) (2024-07-26)
 
 
