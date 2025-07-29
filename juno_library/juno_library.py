@@ -164,7 +164,18 @@ class Pipeline:
         assert (
             self.input_dir.is_dir()
         ), f"The provided input directory ({str(self.input_dir)}) does not exist. Please provide an existing directory"
-
+        
+        # Check for Nanopore data and sequencing_tech mismatch
+        if self.input_dir.exists():
+            nanopore_dirs = [d for d in self.input_dir.iterdir() if d.is_dir() and d.name.startswith("barcode")]
+            if nanopore_dirs and self.sequencing_tech != "nanopore":
+                raise ValueError(
+                    error_formatter(
+                        "It looks like your input directory contains Nanopore data (barcode folders detected), "
+                        "but you did not specify '--sequencing-tech nanopore'. Please rerun with the correct option."
+                    )
+                )
+            
     def run(self) -> None:
         """Setup and run pipeline using snakemake.
 
@@ -499,24 +510,7 @@ class Pipeline:
             elif self.sequencing_tech == "nanopore":
                 self.__enlist_nanopore_samples(self.input_dir)
 
-    #added by Sohana
-    # def __enlist_nanopore_samples(self, dir: Path) -> None:
-    #     """Function to enlist the Nanopore files found in the input directory.
-    #     Adds or updates self.sample_dict with the form:
-
-    #     {sample: {nanopore: fastq_file}}
-    #     """
-    #     for sample_dir in dir.iterdir():
-    #         if sample_dir.is_dir() and sample_dir.name.startswith("barcode"):
-    #             fastq_files = list(sample_dir.glob("*.fastq.gz"))
-    #             if len(fastq_files) != 1:
-    #                 raise ValueError(
-    #                     f"Expected exactly one fastq file in {sample_dir}, found {len(fastq_files)}."
-    #                 )
-    #             sample_name = sample_dir.name
-    #             if sample_name in self.excluded_samples:
-    #                 continue
-    #             self.sample_dict[sample_name] = {"nanopore": str(fastq_files[0].resolve())}
+   
 
     def __enlist_nanopore_samples(self, dir: Path) -> None:
         """Function to enlist the Nanopore files found in the input directory.
@@ -535,11 +529,9 @@ class Pipeline:
                 if sample_name in self.excluded_samples:
                     continue
                 for fastq_file in fastq_files:
-                  
-                    self.sample_dict[str(fastq_file.name).replace('.fastq.gz', '')] = {
+                    sample_key = str(fastq_file.name).replace('.fastq.gz', '')
+                    self.sample_dict[sample_key] = {
                         "barcode": sample_name,
-                        "filtlong_input": str(sample_dir.resolve()),
-                        "genome_size": 5000000,
                         "nanopore_input": str(sample_dir.resolve()),
                     }
 
