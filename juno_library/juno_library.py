@@ -493,23 +493,22 @@ class Pipeline:
                 # self.__enlist_samples_custom_extension(self.input_dir.joinpath("cgmlst"), extension=".tsv", key="cgmlst")
             else:
                 self.__parse_input_type()  # TODO: remove this line when self.input_type is a list in all pipelines
-                #added by Sohana
-                if self.sequencing_tech == "illumina":
-                    if "fastq" in self.input_type:
-                        self.__enlist_fastq_samples(self.input_dir)
-                    if "fasta" in self.input_type:
-                        self.__enlist_samples_custom_extension(
-                            self.input_dir, extension=".fasta", key="assembly"
-                        )
-                    if "vcf" in self.input_type:
-                        self.__enlist_samples_custom_extension(
-                            self.input_dir, extension=".vcf", key="vcf"
-                        )
-                        self.__enlist_reference(self.input_dir)
-                    if "bam" in self.input_type:
-                        self.__enlist_samples_custom_extension(
-                            self.input_dir, extension=".bam", key="bam"
-                        )
+                
+                if "fastq" in self.input_type:
+                    self.__enlist_fastq_samples(self.input_dir)
+                if "fasta" in self.input_type:
+                    self.__enlist_samples_custom_extension(
+                        self.input_dir, extension=".fasta", key="assembly"
+                    )
+                if "vcf" in self.input_type:
+                    self.__enlist_samples_custom_extension(
+                        self.input_dir, extension=".vcf", key="vcf"
+                    )
+                    self.__enlist_reference(self.input_dir)
+                if "bam" in self.input_type:
+                    self.__enlist_samples_custom_extension(
+                        self.input_dir, extension=".bam", key="bam"
+                    )
             #added by Sohana
         elif self.sequencing_tech == "nanopore":
             # self.__enlist_nanopore_samples(self.input_dir)
@@ -527,6 +526,10 @@ class Pipeline:
                 )
             else:
                 self.__enlist_nanopore_samples(self.input_dir)
+        
+        # Add sequencing_tech to each sample
+        for sample in self.sample_dict:
+            self.sample_dict[sample]["sequencing_tech"] = self.sequencing_tech
         print("Sample dict:", self.sample_dict)          
 
    
