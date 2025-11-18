@@ -540,24 +540,6 @@ class Pipeline:
 
         {sample: {nanopore: fastq_file}}
         """
-        # for sample_dir in dir.iterdir():
-        #     if sample_dir.is_dir() and sample_dir.name.startswith("barcode"):
-        #         fastq_files = list(sample_dir.glob("*.fastq.gz"))
-        #         if len(fastq_files) != 1:
-        #             raise ValueError(
-        #                 f"Expected exactly one fastq file in {sample_dir}, found {len(fastq_files)}."
-        #             )
-        #         sample_name = sample_dir.name
-        #         if sample_name in self.excluded_samples:
-        #             continue
-        #         for fastq_file in fastq_files:
-        #             sample_key = str(fastq_file.name).replace('.fastq.gz', '')
-        #             self.sample_dict[sample_key] = {
-        #                 "barcode": sample_name,
-        #                 "nanopore_input": str(sample_dir.resolve()),
-        #             }
-
-        #accept one or more fastq files per barcode folder
         for sample_dir in dir.iterdir():
             if sample_dir.is_dir() and sample_dir.name.startswith("barcode"):
                 fastq_files = list(sample_dir.glob("*.fastq.gz"))
@@ -568,10 +550,22 @@ class Pipeline:
                 sample_name = sample_dir.name
                 if sample_name in self.excluded_samples:
                     continue
-                # Store all fastq files as a list
-                self.sample_dict.setdefault(sample_name, {})["nanopore_input"] = [str(f.resolve()) for f in fastq_files]
-                self.sample_dict[sample_name]["barcode"] = sample_name
-                
+                #check if there are more than one fastq file in the barcode folder
+                if len(fastq_files) == 1:
+                    for fastq_file in fastq_files:
+                        sample_key = str(fastq_file.name).replace('.fastq.gz', '')
+                        self.sample_dict[sample_key] = {
+                            "barcode": sample_name,
+                            "nanopore_input": str(sample_dir.resolve()),
+                        }
+                else:
+                    for fastq_file in fastq_files:
+                        sample_key = str(fastq_file.name).replace('.fastq.gz', '') + sample_name
+                        self.sample_dict[sample_key] = {
+                            "barcode": sample_dir.name,
+                            "nanopore_input": str(fastq_file.resolve()),
+                        }
+
         #for fastplong when nanopore output is used
         for fastq_file in dir.glob("*.fastq"):
             sample_name = fastq_file.stem
