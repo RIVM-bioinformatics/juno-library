@@ -559,12 +559,16 @@ class Pipeline:
                             "nanopore_input": str(sample_dir.resolve()),
                         }
                 else:
+                    # For multiple fastq.gz files, create a dict entry for each file
                     for fastq_file in fastq_files:
-                        sample_key = str(fastq_file.name).replace('.fastq.gz', '') + sample_name
+                        sample_key = fastq_file.stem
+                        if sample_key in self.excluded_samples:
+                            continue
                         self.sample_dict[sample_key] = {
-                            "barcode": sample_dir.name,
-                            "nanopore_input": str(fastq_file.resolve()),
+                            "barcode": sample_name,
+                            "nanopore_input": str(fastq_file.resolve())
                         }
+                    
 
         #for fastplong when nanopore output is used
         for fastq_file in dir.glob("*.fastq"):
