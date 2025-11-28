@@ -514,13 +514,13 @@ class Pipeline:
             # self.__enlist_nanopore_samples(self.input_dir)
             # Add a check for Nanopore output
             self.input_dir_is_nanopore_output = self.__check_input_dir(
-                ["fastplong", "flye"]
+                ["fastplong", "autocycler/all_consensus_assembly"]
     )
             #check for Nanopore output - added by Sohana 30/10/2025
             if self.input_dir_is_nanopore_output:
                 self.__enlist_nanopore_samples(self.input_dir.joinpath("fastplong"))
                 self.__enlist_samples_custom_extension_nanopore(
-                    self.input_dir.joinpath("flye"),
+                    self.input_dir.joinpath("autocycler/all_consensus_assembly"),
                     extension=".fasta",
                     key="assembly",
                 )
@@ -652,20 +652,36 @@ class Pipeline:
                     sample[key] = str(file_.resolve())
 
 #nanopore functionality 30/10/2025
+
+    #flye
+    # def __enlist_samples_custom_extension_nanopore(self, dir: Path, extension: str, key: str) -> None:
+    #     for sample_dir in dir.iterdir():
+    #         if sample_dir.is_dir():
+    #             # Look for files named sample_name_assembly.fasta inside sample_dir
+    #             expected_file = sample_dir / f"{sample_dir.name}_assembly{extension}"
+    #             if expected_file.exists() and validate_file_has_min_lines(expected_file, self.min_num_lines):
+    #                 sample_name = sample_dir.name
+    #                 if sample_name in self.excluded_samples:
+    #                     continue
+    #                 sample = self.sample_dict.setdefault(sample_name, {})
+    #                 sample[key] = str(expected_file.resolve())
+
     def __enlist_samples_custom_extension_nanopore(self, dir: Path, extension: str, key: str) -> None:
         """
-        Only add assemblies from output_dir/flye/sample_name/sample_name_assembly.fasta
+        Enlist files from autocycler/all_consensus_assembly with pattern samplename-autocycler.fasta.
+        Adds or updates self.sample_dict with the form:
+        {sample: {key: file}}
         """
-        for sample_dir in dir.iterdir():
-            if sample_dir.is_dir():
-                # Look for files named sample_name_assembly.fasta inside sample_dir
-                expected_file = sample_dir / f"{sample_dir.name}_assembly{extension}"
-                if expected_file.exists() and validate_file_has_min_lines(expected_file, self.min_num_lines):
-                    sample_name = sample_dir.name
+        # autocycler_dir = dir.joinpath("autocycler/all_consensus_assembly")
+        pattern = re.compile(r"(.*)-autocycler\.fasta")
+        for file_ in dir.iterdir():
+            if validate_file_has_min_lines(file_, self.min_num_lines):
+                if match := pattern.fullmatch(file_.name):
+                    sample_name = match.group(1)
                     if sample_name in self.excluded_samples:
                         continue
                     sample = self.sample_dict.setdefault(sample_name, {})
-                    sample[key] = str(expected_file.resolve())
+                    sample[key] = str(file_.resolve())
 
     def __set_exluded_samples(self) -> None:
         """Read self.exclusion file and set self.excluded_sameples.
