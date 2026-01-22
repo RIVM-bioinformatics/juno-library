@@ -92,6 +92,7 @@ class Pipeline:
             latency_wait=60,
             conda_frontend="mamba",
             keepgoing=True,
+            cluster_status="check_lsf_status.py",
             printshellcmds=True,
         )
     )
@@ -216,6 +217,7 @@ class Pipeline:
                     -o %s/{name}_{wildcards}_{jobid}.out \
                     -e %s/{name}_{wildcards}_{jobid}.err \
                     -R "span[hosts=1]" \
+                    -hl \
                     -R "rusage[mem={resources.mem_gb}G]" \
                     -M {resources.mem_gb}G \
                     -W %s '
