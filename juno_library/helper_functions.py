@@ -1,11 +1,13 @@
 from __future__ import annotations
+
 import argparse
-import subprocess
-import pathlib
-from typing import Sequence, Optional, Any
-import inspect
-import snakemake
 import ast
+import inspect
+import pathlib
+import subprocess
+from typing import Any, Optional, Sequence
+
+import snakemake
 
 # Helper functions for text manipulation
 
@@ -151,7 +153,11 @@ class SnakemakeKwargsAction(argparse.Action):
         values: None | str | Sequence[str],
         option_string: Optional[str] = None,
     ) -> None:
+        print(values)
         allowed_snakemake_args = inspect.getfullargspec(snakemake.snakemake).args
+        for arg in allowed_snakemake_args:
+            print(arg)
+
         snakemake_args: dict[str, Any] = dict()
         if not values:
             msg = f"No arguments and values were given to --snakemake-args. Did you try to pass an extra argument to Snakemkake? Make sure that you used the API format and that you use the argument int he form: arg=value."

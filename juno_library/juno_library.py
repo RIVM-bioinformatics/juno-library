@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """The Juno pipeline library contains the basic classes to build a bacteriology
 genomics pipeline with the format used in the IDS- bioinformatics group at the
 RIVM.
@@ -7,6 +5,9 @@ RIVM.
 All of our pipelines use Snakemake.
 """
 
+from __future__ import annotations
+
+import argparse
 import pathlib
 import re
 import shutil
@@ -15,6 +16,7 @@ import sys
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple, Union, cast
 from uuid import UUID, uuid4
 
 import yaml
@@ -22,15 +24,13 @@ from pandas import read_csv
 from snakemake import snakemake
 
 from juno_library.helper_functions import (
-    message_formatter,
-    error_formatter,
     SnakemakeKwargsAction,
-    validate_file_has_min_lines,
+    error_formatter,
     get_commit_git,
     get_repo_url,
+    message_formatter,
+    validate_file_has_min_lines,
 )
-from typing import Any, Optional, Dict, Tuple, cast, List, Union
-import argparse
 
 
 @dataclass()
@@ -332,6 +332,11 @@ class Pipeline:
         args = self.parser.parse_args(self.argv)
 
         self.snakemake_args.update(args.snakemake_args)
+        print(
+            message_formatter(
+                f"Snakemake arguments that will be used: {self.snakemake_args}"
+            )
+        )
         self.local: bool = args.local
         self.unlock: bool = args.unlock
         self.dryrun: bool = args.dryrun
