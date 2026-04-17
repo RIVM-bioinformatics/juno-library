@@ -532,7 +532,7 @@ class Pipeline:
         # Add sequencing_tech to each sample
         for sample in self.sample_dict:
             self.sample_dict[sample]["sequencing_tech"] = self.sequencing_tech
-        print("Sample dict:", self.sample_dict)          
+        # print("Sample dict:", self.sample_dict)          
 
    
 
