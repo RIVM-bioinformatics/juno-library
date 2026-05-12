@@ -578,7 +578,7 @@ class Pipeline:
                         continue
                     self.sample_dict.setdefault(sample_key, {
                         "barcode": sample_name
-                    })["bam"] = str(bam_file.resolve())
+                    })["nanopore_input"] = str(bam_file.resolve())
                     
 
         #for fastplong when nanopore output is used
@@ -597,7 +597,7 @@ class Pipeline:
             sample_name = bam_file.stem
             if sample_name in self.excluded_samples:
                 continue
-            self.sample_dict.setdefault(sample_name, {})["bam"] = str(bam_file.resolve())
+            self.sample_dict.setdefault(sample_name, {})["nanopore_input"] = str(bam_file.resolve())
 
 
     def __enlist_fastq_samples(self, dir: Path) -> None:
@@ -785,7 +785,7 @@ class Pipeline:
             for sample in self.sample_dict:
                 nanopore_present = (
                 "nanopore_input" in self.sample_dict[sample]
-                or "bam" in self.sample_dict[sample]
+                #or "bam" in self.sample_dict[sample]
             )
             if not nanopore_present:
                 errors.append(
