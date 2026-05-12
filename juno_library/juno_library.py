@@ -790,25 +790,21 @@ class Pipeline:
                             f"The Nanopore fastq file is missing for sample {sample}. This pipeline expects a Nanopore fastq per sample."
                         )
                     )
-            
-            if "fasta" in self.input_type:
-                if "assembly" not in self.sample_dict[sample]:
-                    errors.append(
-                        KeyError(
-                            f"The assembly is missing for sample {sample}. This pipeline expects an assembly per sample."
-                        )
-                    )
-            #ADDED by Sohana 12/05/2026: check for bam files in case of nanopore data
-            if "bam" in self.input_type:
-                for sample in self.sample_dict:
-                    bam_present = self.sample_dict[sample].keys()
-                    if "bam" not in bam_present:
+                if "fasta" in self.input_type:
+                    if "assembly" not in self.sample_dict[sample]:
                         errors.append(
                             KeyError(
-                                f"The BAM file is missing for sample {sample}. This pipeline expects a BAM per sample."
+                                f"The assembly is missing for sample {sample}. This pipeline expects an assembly per sample."
                             )
                         )
-
+                if "bam" in self.input_type:
+                    if "bam" not in self.sample_dict[sample]:
+                        errors.append(
+                            KeyError(
+                                f"The BAM file is missing for sample {sample}. This pipeline expects a BAM file per sample."
+                            )
+                        )
+           
         if len(errors) == 0:
             return True
         if len(errors) == 1:
