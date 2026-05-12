@@ -545,9 +545,10 @@ class Pipeline:
         for sample_dir in dir.iterdir():
             if sample_dir.is_dir() and sample_dir.name.startswith("barcode"):
                 fastq_files = list(sample_dir.glob("*.fastq.gz"))
-                if not fastq_files:
+                bam_files = list(sample_dir.glob("*.bam"))  # ADDED by Sohana 12/05/2026
+                if not fastq_files and not bam_files:  # Check if there are no fastq.gz or bam files in the barcode folder
                     raise ValueError(
-                        f"No fastq files found in {sample_dir}."
+                        f"No fastq or bam files found in {sample_dir}."
                     )
                 sample_name = sample_dir.name
                 if sample_name in self.excluded_samples:
@@ -570,6 +571,14 @@ class Pipeline:
                             "barcode": sample_name,
                             "nanopore_input": str(fastq_file.resolve())
                         }
+                # ADDED by Sohana 12/05/2026: enlist bam files per barcode folder
+                for bam_file in bam_files:
+                    sample_key = bam_file.stem
+                    if sample_key in self.excluded_samples:
+                        continue
+                    self.sample_dict.setdefault(sample_key, {
+                        "barcode": sample_name
+                    })["bam"] = str(bam_file.resolve())
                     
 
         #for fastplong when nanopore output is used
@@ -583,7 +592,12 @@ class Pipeline:
             if sample_name in self.excluded_samples:
                 continue
             self.sample_dict.setdefault(sample_name, {})["nanopore_input"] = str(fastq_file.resolve())
-
+        # ADDED by Sohana 12/05/2026
+        for bam_file in dir.glob("*.bam"):
+            sample_name = bam_file.stem
+            if sample_name in self.excluded_samples:
+                continue
+            self.sample_dict.setdefault(sample_name, {})["bam"] = str(bam_file.resolve())
 
 
     def __enlist_fastq_samples(self, dir: Path) -> None:
@@ -757,7 +771,7 @@ class Pipeline:
                             )
                         )
         #added by Sohana
-        #Validaion for Nanopore data
+        #Validation for Nanopore data
         # elif self.sequencing_tech == "nanopore":
         #     for sample in self.sample_dict:
         #         nanopore_present = self.sample_dict[sample].keys()
@@ -784,6 +798,16 @@ class Pipeline:
                             f"The assembly is missing for sample {sample}. This pipeline expects an assembly per sample."
                         )
                     )
+            #ADDED by Sohana 12/05/2026: check for bam files in case of nanopore data
+            if "bam" in self.input_type:
+                for sample in self.sample_dict:
+                    bam_present = self.sample_dict[sample].keys()
+                    if "bam" not in bam_present:
+                        errors.append(
+                            KeyError(
+                                f"The BAM file is missing for sample {sample}. This pipeline expects a BAM per sample."
+                            )
+                        )
 
         if len(errors) == 0:
             return True
