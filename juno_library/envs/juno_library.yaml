@@ -5,17 +5,9 @@ channels:
   - defaults
 dependencies:
   - python>=3.9.*
-  - pandas=1.5.3
-  - pandas-stubs=1.5.3
-  - drmaa==0.7.9
-  - snakemake=7.18.*
-  - xlrd=2.0.*
-  - pyyaml=6.0
-  - types-PyYaml=6.*
   - git=2.40.*
   - setuptools=67.*
   - types-setuptools=67.*
-  - black=23.*
-  - snakefmt=0.8.*
-  - pip=23.*
-  - mypy=1.1.*
+  - pip>=23.*
+  - pip:
+    - -r ../../requirements.txt
