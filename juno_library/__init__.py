@@ -1,3 +1,4 @@
-from juno_library.juno_library import Pipeline
+from .core import Pipeline
+from .version import __version__
 
 __all__ = ["Pipeline"]
