@@ -1,0 +1,12 @@
+pandas==1.5.3
+pandas-stubs==1.5.3.*
+drmaa==0.7.9
+# issue here!! conda states snakemake=7.18.*
+snakemake>=7.24,<=7.32
+xlrd>=2.0
+pyyaml>=6.0
+types-PyYAML>=6.0
+# chore: developer's tools aren't required for production code and will soon get consumed by harmonisation
+black>=23
+mypy>=1.1
+snakefmt>=0.8
