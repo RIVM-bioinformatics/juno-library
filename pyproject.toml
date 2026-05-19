@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=61.0.0","setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "juno_library"
+requires-python = ">=3.10"
+dynamic = ["dependencies"]
+#dynamic = ["version"] # see ViroConstrictor. Get from <package>/__init__.py
+# chore: juno_library/version.py might become superfluous, so port all that is needed to here
+description = "juno_library contains basic classes to make a bacteriology genomics pipeline with the format used in the IDS-bioinformatics department (RIVM)"
+version = "2.3.beta"
+readme = "README.md"
+license = {text = "AGPLv3"}
+authors = [
+    { name = "Karim Hajji" },
+    { name = "Alejandra H. Segura" },
+    { name = "Boas van der Putten" },
+    { name = "Roxanne Wolthuis" },
+    { name = "Sohana Singh" },
+    { name = "Ate van der Burgt" },
+    { email = "ids-bioinformatics@rivm.nl" },
+]
+
+[project.scripts]
+juno_pipeline = "juno_library.run:main"
+
+[tool.setuptools]
+include-package-data = true
+packages = ["juno_library"]
+
+[tool.setuptools.dynamic]
+dependencies = {file = ["requirements.txt"]}
