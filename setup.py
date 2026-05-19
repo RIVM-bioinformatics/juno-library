@@ -1,14 +1,7 @@
 from __future__ import print_function
 
-from juno_library.version import (
-    __package_name__,
-    __version__,
-    __email__,
-    __description__,
-    __authors__,
-    __license__,
-)
-import sys
+import sys, os
+from typing import List
 
 if sys.version_info < (3, 9):
     print(
@@ -27,31 +20,33 @@ except ImportError:
     )
     exit(1)
 
+# read metadata, replacing the breaking """from juno_library.version import ( .... )"""
+meta = {}
+here = os.path.abspath(os.path.dirname(__file__))
+with open(os.path.join(here, "juno_library", "version.py"), "r", encoding="utf-8") as f:
+    exec(f.read(), meta)
+
+def parse_requirements(filename:str="requirements.txt") -> List[str]:
+    """ parse the/a requirements.txt file into a list for setup(install_requires=[]) """
+    with open(filename, "r", encoding="utf-8") as f:
+        return [
+            line.strip()
+            for line in f
+            if line.strip() and not line.strip().startswith("#")
+        ]
 
 setup(
-    name=__package_name__,
-    version=__version__,
-    author=__authors__,
-    author_email=__email__,
-    description=__description__,
+    name=meta["__package_name__"],
+    version=meta["__version__"],
+    author=meta["__authors__"],
+    author_email=meta["__email__"],
+    description=meta["__description__"],
+    license=meta["__license__"],
     zip_safe=False,
-    license=__license__,
     packages=find_packages(),
     scripts=["juno_library/run.py"],
     package_data={"juno_library": ["envs/*", "py.typed"]},
-    install_requires=[
-        "pandas>=1.5",
-        "pandas-stubs>=1.5",
-        "drmaa>=0.7.9",
-        "snakemake>=7.24, <=7.32",
-        "xlrd>=2.0",
-        "pyyaml>=6.0",
-        "types-PyYAML>=6.0",
-        "black>=23",
-        "snakefmt>=0.8",
-        "mypy>=1.1",
-        "pip>=23",
-    ],
+    install_requires=parse_requirements(os.path.join(here, "requirements.txt")),
     entry_points={"console_scripts": ["juno_pipeline = juno_library.run:main"]},
     include_package_data=True,
 )
