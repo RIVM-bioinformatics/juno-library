@@ -4,6 +4,7 @@ __pycache__/
 .snakemake/
 *.egg-info/
 .vscode/
+.idea/
 build/
 .mypy_cache/
 
