@@ -1,6 +1,6 @@
-pandas==1.5.3
-numpy<2.0.0
-pandas-stubs==1.5.3.*
+pandas>=1.5.3
+#pandas-stubs==1.5.3.*
+#numpy<2.0.0
 drmaa==0.7.9
 # issue here!! conda states snakemake=7.18.*
 snakemake>=7.24,<=7.32
