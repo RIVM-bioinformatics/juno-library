@@ -1,5 +1,30 @@
 # Changelog
 
+## [2.3.0](https://github.com/RIVM-bioinformatics/juno-library/compare/v2.2.2...v2.3.0) (2026-05-22)
+
+
+### Features
+
+* accept .bam files for nanopore ([1266904](https://github.com/RIVM-bioinformatics/juno-library/commit/12669042d16947c6cf1a4091d14246b996844c0b))
+* add check for cluster status ([a2b58d9](https://github.com/RIVM-bioinformatics/juno-library/commit/a2b58d9ee66128fee591029b54002f11025d1684))
+* enlist fastas from autocycler consensus assemblies ([aa22b37](https://github.com/RIVM-bioinformatics/juno-library/commit/aa22b37b0900264edb035d4628b6cdede3129129))
+
+
+### Bug Fixes
+
+* accept input when multiple samples are in one barcode folder ([aa20119](https://github.com/RIVM-bioinformatics/juno-library/commit/aa20119759129d35403f0a05e9dd085332bd40f3))
+* added numpy version to yaml ([f34edb1](https://github.com/RIVM-bioinformatics/juno-library/commit/f34edb148ecd2761abc3703d49fe2c3dee14ba70))
+* bug in fasta file check for nanopore samples ([464c262](https://github.com/RIVM-bioinformatics/juno-library/commit/464c262636a5072edecac45e0f168d44f4fc6a0d))
+* changes based on pull request comments ([dba9e91](https://github.com/RIVM-bioinformatics/juno-library/commit/dba9e912f6c464672da5eb0e61baef83344450e6))
+* changes to enlist nanopore samples ([a194a37](https://github.com/RIVM-bioinformatics/juno-library/commit/a194a37d7514ff69858f52fa6366fefe084ffea7))
+* cleanup ([0a14a69](https://github.com/RIVM-bioinformatics/juno-library/commit/0a14a696bbdd0320d85bd79602c10b2cbd15430e))
+* code cleanup ([44a24fa](https://github.com/RIVM-bioinformatics/juno-library/commit/44a24fa0aa492ed191b2b18967905668537c128e))
+* don't create a different key for bam ([17a9673](https://github.com/RIVM-bioinformatics/juno-library/commit/17a9673b7c549a163f67fb7110257f2798f94b28))
+* enlisting multiple fastqs in one folder for nanopore ([1f6cec5](https://github.com/RIVM-bioinformatics/juno-library/commit/1f6cec5d9606e6b3b52342bb6cf467cc1e185262))
+* error in validate_sample_dict for nanopore samples ([05d14ca](https://github.com/RIVM-bioinformatics/juno-library/commit/05d14ca5eee7978e9964cd7e056755bc0a6946b7))
+* make a sequencing tech entry in sample sheet ([a431061](https://github.com/RIVM-bioinformatics/juno-library/commit/a431061a812796e4d15239222fc00d2c321d0fc0))
+* updated to include check for atlas_assembly output folder ([9c533ca](https://github.com/RIVM-bioinformatics/juno-library/commit/9c533caf46eb0e0cf7467f2ff165adecd60eb02d))
+
 ## [2.2.2](https://github.com/RIVM-bioinformatics/juno-library/compare/v2.2.1...v2.2.2) (2025-04-14)
 
 
