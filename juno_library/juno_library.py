@@ -21,7 +21,15 @@ import yaml
 from pandas import read_csv
 from snakemake import snakemake
 
-from juno_library.helper_functions import (
+# from juno_library.helper_functions import (
+#     message_formatter,
+#     error_formatter,
+#     SnakemakeKwargsAction,
+#     validate_file_has_min_lines,
+#     get_commit_git,
+#     get_repo_url,
+# )
+from .helper_functions import (
     message_formatter,
     error_formatter,
     SnakemakeKwargsAction,
@@ -157,6 +165,21 @@ class Pipeline:
         assert (
             self.input_dir.is_dir()
         ), f"The provided input directory ({str(self.input_dir)}) does not exist. Please provide an existing directory"
+
+        # Check for Nanopore data and sequencing_tech mismatch
+        if self.input_dir.exists():
+            nanopore_dirs = [
+                d
+                for d in self.input_dir.iterdir()
+                if d.is_dir() and d.name.startswith("barcode")
+            ]
+            if nanopore_dirs and self.sequencing_tech != "nanopore":
+                raise ValueError(
+                    error_formatter(
+                        "It looks like your input directory contains Nanopore data (barcode folders detected), "
+                        "but you did not specify '--sequencing-tech nanopore'. Please rerun with the correct option."
+                    )
+                )
 
     def run(self) -> None:
         """Setup and run pipeline using snakemake.
@@ -318,6 +341,14 @@ class Pipeline:
             action=SnakemakeKwargsAction,
             help="Extra arguments to be passed to snakemake API (https://snakemake.readthedocs.io/en/stable/api_reference/snakemake.html).",
         )
+        # added by Sohana
+        self.add_argument(
+            "--sequencing-tech",
+            type=str,
+            choices=["illumina", "nanopore"],
+            default="illumina",
+            help="Sequencing technology used for the reads. Default is 'illumina'.",
+        )
 
     def _parse_args(self) -> argparse.Namespace:
         """Function to parse args from the self.parser object and set
@@ -357,6 +388,9 @@ class Pipeline:
             self.exclusion_file = args.exclusion_file.resolve()
         except AttributeError:
             pass  # No exclusion file given on the command line
+
+        # added by Sohana
+        self.sequencing_tech: str = args.sequencing_tech
 
         return args
 
@@ -414,68 +448,156 @@ class Pipeline:
         juno_assembly and sets self.input_dir_is_juno_assembly_output.
         """
         self.sample_dict: dict[str, dict[str, str]] = {}
-        self.input_dir_is_juno_assembly_output = self.__check_input_dir(
-            ["clean_fastq", "de_novo_assembly_filtered"]
-        )
-        self.input_dir_is_juno_mapping_output = self.__check_input_dir(
-            ["mapped_reads/duprem", "variants", "reference/reference.fasta"]
-        )
-        self.input_dir_is_juno_variant_typing_output = self.__check_input_dir(
-            ["*/consensus", "audit_trail"]
-        )
-        self.input_dir_is_juno_cgmlst_output = self.__check_input_dir(
-            ["cgmlst/*", "audit_trail"]
-        )
-        if self.input_dir_is_juno_assembly_output:
-            self.__enlist_fastq_samples(self.input_dir.joinpath("clean_fastq"))
-            self.__enlist_samples_custom_extension(
-                self.input_dir.joinpath("de_novo_assembly_filtered"),
-                extension=".fasta",
-                key="assembly",
+
+        if self.sequencing_tech == "illumina":
+            self.input_dir_is_juno_assembly_output = self.__check_input_dir(
+                ["clean_fastq", "de_novo_assembly_filtered"]
             )
-        elif self.input_dir_is_juno_mapping_output:
-            self.__enlist_samples_custom_extension(
-                self.input_dir.joinpath("mapped_reads", "duprem"),
-                extension=".bam",
-                key="bam",
+
+            self.input_dir_is_juno_mapping_output = self.__check_input_dir(
+                ["mapped_reads/duprem", "variants", "reference/reference.fasta"]
             )
-            self.__enlist_samples_custom_extension(
-                self.input_dir.joinpath("variants"), extension=".vcf", key="vcf"
+            self.input_dir_is_juno_variant_typing_output = self.__check_input_dir(
+                ["*/consensus", "audit_trail"]
             )
-            self.__enlist_reference(self.input_dir)
-        elif self.input_dir_is_juno_variant_typing_output:
-            consensus_paths = list(self.input_dir.glob("*/consensus"))
-            assert len(consensus_paths) == 1, error_formatter(
-                f"""Expected to find exactly one consensus directory in the input directory ({self.input_dir}).\n
-                Found {len(list(consensus_paths))}."""
+            self.input_dir_is_juno_cgmlst_output = self.__check_input_dir(
+                ["cgmlst/*", "audit_trail"]
             )
-            self.__enlist_samples_custom_extension(
-                consensus_paths[0], extension=".fasta", key="assembly"
-            )
-        elif self.input_dir_is_juno_cgmlst_output:
-            raise NotImplementedError(
-                "Using juno-cgmlst output is not yet implemented."
-            )
-            # TODO: juno-cgmlst should output a TSV file with the cgmlst results per sample, which should be enlisted here. Can be multiple schemes per sample.
-            # Could be in the format: {sample: {cgmlst_scheme1: cgmlst_file1, cgmlst_scheme2: cgmlst_file2}}
-            # self.__enlist_samples_custom_extension(self.input_dir.joinpath("cgmlst"), extension=".tsv", key="cgmlst")
-        else:
-            self.__parse_input_type()  # TODO: remove this line when self.input_type is a list in all pipelines
-            if "fastq" in self.input_type:
-                self.__enlist_fastq_samples(self.input_dir)
-            if "fasta" in self.input_type:
+            if self.input_dir_is_juno_assembly_output:
+                self.__enlist_fastq_samples(self.input_dir.joinpath("clean_fastq"))
                 self.__enlist_samples_custom_extension(
-                    self.input_dir, extension=".fasta", key="assembly"
+                    self.input_dir.joinpath("de_novo_assembly_filtered"),
+                    extension=".fasta",
+                    key="assembly",
                 )
-            if "vcf" in self.input_type:
+
+            elif self.input_dir_is_juno_mapping_output:
                 self.__enlist_samples_custom_extension(
-                    self.input_dir, extension=".vcf", key="vcf"
+                    self.input_dir.joinpath("mapped_reads", "duprem"),
+                    extension=".bam",
+                    key="bam",
+                )
+                self.__enlist_samples_custom_extension(
+                    self.input_dir.joinpath("variants"), extension=".vcf", key="vcf"
                 )
                 self.__enlist_reference(self.input_dir)
-            if "bam" in self.input_type:
-                self.__enlist_samples_custom_extension(
-                    self.input_dir, extension=".bam", key="bam"
+            elif self.input_dir_is_juno_variant_typing_output:
+                consensus_paths = list(self.input_dir.glob("*/consensus"))
+                assert len(consensus_paths) == 1, error_formatter(
+                    f"""Expected to find exactly one consensus directory in the input directory ({self.input_dir}).\n
+                    Found {len(list(consensus_paths))}."""
                 )
+                self.__enlist_samples_custom_extension(
+                    consensus_paths[0], extension=".fasta", key="assembly"
+                )
+            elif self.input_dir_is_juno_cgmlst_output:
+                raise NotImplementedError(
+                    "Using juno-cgmlst output is not yet implemented."
+                )
+                # TODO: juno-cgmlst should output a TSV file with the cgmlst results per sample, which should be enlisted here. Can be multiple schemes per sample.
+                # Could be in the format: {sample: {cgmlst_scheme1: cgmlst_file1, cgmlst_scheme2: cgmlst_file2}}
+                # self.__enlist_samples_custom_extension(self.input_dir.joinpath("cgmlst"), extension=".tsv", key="cgmlst")
+            else:
+                self.__parse_input_type()  # TODO: remove this line when self.input_type is a list in all pipelines
+
+                if "fastq" in self.input_type:
+                    self.__enlist_fastq_samples(self.input_dir)
+                if "fasta" in self.input_type:
+                    self.__enlist_samples_custom_extension(
+                        self.input_dir, extension=".fasta", key="assembly"
+                    )
+                if "vcf" in self.input_type:
+                    self.__enlist_samples_custom_extension(
+                        self.input_dir, extension=".vcf", key="vcf"
+                    )
+                    self.__enlist_reference(self.input_dir)
+                if "bam" in self.input_type:
+                    self.__enlist_samples_custom_extension(
+                        self.input_dir, extension=".bam", key="bam"
+                    )
+        elif self.sequencing_tech == "nanopore":
+            self.input_dir_is_nanopore_output = self.__check_input_dir(
+                ["fastplong", "autocycler/all_consensus_assembly"]
+            )
+            if self.input_dir_is_nanopore_output:
+                self.__enlist_nanopore_samples(self.input_dir.joinpath("fastplong"))
+                self.__enlist_samples_custom_extension_nanopore(
+                    self.input_dir.joinpath("autocycler/all_consensus_assembly"),
+                    extension=".fasta",
+                    key="assembly",
+                )
+            else:
+                self.__enlist_nanopore_samples(self.input_dir)
+
+        # Add sequencing_tech to each sample
+        # for sample in self.sample_dict:
+        #     self.sample_dict[sample]["sequencing_tech"] = self.sequencing_tech
+
+    def __enlist_nanopore_samples(self, dir: Path) -> None:
+        """Function to enlist the Nanopore files found in the input directory.
+        Adds or updates self.sample_dict with the form:
+
+        {sample: {nanopore: fastq_file}}
+        """
+        for sample_dir in dir.iterdir():
+            if sample_dir.is_dir() and sample_dir.name.startswith("barcode"):
+                fastq_files = list(sample_dir.glob("*.fastq.gz"))
+                bam_files = list(sample_dir.glob("*.bam"))
+                if (
+                    not fastq_files and not bam_files
+                ):  # Check if there are no fastq.gz or bam files in the barcode folder
+                    raise ValueError(f"No fastq or bam files found in {sample_dir}.")
+                sample_name = sample_dir.name
+                if sample_name in self.excluded_samples:
+                    continue
+                # check if there are more than one fastq file in the barcode folder
+                if len(fastq_files) == 1:
+                    for fastq_file in fastq_files:
+                        sample_key = str(fastq_file.name).replace(".fastq.gz", "")
+                        self.sample_dict[sample_key] = {
+                            "barcode": sample_name,
+                            "nanopore_input": str(sample_dir.resolve()),
+                        }
+                else:
+                    # For multiple fastq.gz files, create a dict entry for each file
+                    for fastq_file in fastq_files:
+                        sample_key = fastq_file.stem
+                        if sample_key in self.excluded_samples:
+                            continue
+                        self.sample_dict[sample_key] = {
+                            "barcode": sample_name,
+                            "nanopore_input": str(fastq_file.resolve()),
+                        }
+                for bam_file in bam_files:
+                    sample_key = bam_file.stem
+                    if sample_key in self.excluded_samples:
+                        continue
+                    self.sample_dict.setdefault(sample_key, {"barcode": sample_name})[
+                        "nanopore_input"
+                    ] = str(bam_file.resolve())
+
+        # for fastplong when nanopore output is used
+        for fastq_file in dir.glob("*.fastq"):
+            sample_name = fastq_file.stem
+            if sample_name in self.excluded_samples:
+                continue
+            self.sample_dict.setdefault(sample_name, {})["nanopore_input"] = str(
+                fastq_file.resolve()
+            )
+        for fastq_file in dir.glob("*.fastq.gz"):
+            sample_name = fastq_file.name.replace(".fastq.gz", "")
+            if sample_name in self.excluded_samples:
+                continue
+            self.sample_dict.setdefault(sample_name, {})["nanopore_input"] = str(
+                fastq_file.resolve()
+            )
+        for bam_file in dir.glob("*.bam"):
+            sample_name = bam_file.stem
+            if sample_name in self.excluded_samples:
+                continue
+            self.sample_dict.setdefault(sample_name, {})["nanopore_input"] = str(
+                bam_file.resolve()
+            )
 
     def __enlist_fastq_samples(self, dir: Path) -> None:
         """Function to enlist the fastq files found in the input directory.
@@ -544,6 +666,24 @@ class Pipeline:
                     sample = self.sample_dict.setdefault(sample_name, {})
                     sample[key] = str(file_.resolve())
 
+    def __enlist_samples_custom_extension_nanopore(
+        self, dir: Path, extension: str, key: str
+    ) -> None:
+        """
+        Enlist files from autocycler/all_consensus_assembly with pattern samplename-autocycler.fasta.
+        Adds or updates self.sample_dict with the form:
+        {sample: {key: file}}
+        """
+        pattern = re.compile(r"(.*)-autocycler\.fasta")
+        for file_ in dir.iterdir():
+            if validate_file_has_min_lines(file_, self.min_num_lines):
+                if match := pattern.fullmatch(file_.name):
+                    sample_name = match.group(1)
+                    if sample_name in self.excluded_samples:
+                        continue
+                    sample = self.sample_dict.setdefault(sample_name, {})
+                    sample[key] = str(file_.resolve())
+
     def __set_exluded_samples(self) -> None:
         """Read self.exclusion file and set self.excluded_sameples.
 
@@ -577,43 +717,66 @@ class Pipeline:
                 )
             )
         errors = []
-        if "fastq" in self.input_type:
-            for sample in self.sample_dict:
-                R1_present = "R1" in self.sample_dict[sample].keys()
-                R2_present = "R2" in self.sample_dict[sample].keys()
-                if not R1_present or not R2_present:
-                    errors.append(
-                        KeyError(
-                            f"One of the paired fastq files (R1 or R2) are missing for sample {sample}. This pipeline ONLY ACCEPTS PAIRED READS. If you are sure you have complete paired-end reads, make sure to NOT USE _1 and _2 within your file names unless it is to differentiate paired fastq files or any unsupported character (Supported: letters, numbers, underscores)."
+        if self.sequencing_tech == "illumina":
+            if "fastq" in self.input_type:
+                for sample in self.sample_dict:
+                    R1_present = "R1" in self.sample_dict[sample].keys()
+                    R2_present = "R2" in self.sample_dict[sample].keys()
+                    if not R1_present or not R2_present:
+                        errors.append(
+                            KeyError(
+                                f"One of the paired fastq files (R1 or R2) are missing for sample {sample}. This pipeline ONLY ACCEPTS PAIRED READS. If you are sure you have complete paired-end reads, make sure to NOT USE _1 and _2 within your file names unless it is to differentiate paired fastq files or any unsupported character (Supported: letters, numbers, underscores)."
+                            )
                         )
-                    )
-        if "fasta" in self.input_type:
-            for sample in self.sample_dict:
-                assembly_present = self.sample_dict[sample].keys()
-                if "assembly" not in assembly_present:
-                    errors.append(
-                        KeyError(
-                            f"The assembly is missing for sample {sample}. This pipeline expects an assembly per sample."
+            if "fasta" in self.input_type:
+                for sample in self.sample_dict:
+                    assembly_present = self.sample_dict[sample].keys()
+                    if "assembly" not in assembly_present:
+                        errors.append(
+                            KeyError(
+                                f"The assembly is missing for sample {sample}. This pipeline expects an assembly per sample."
+                            )
                         )
-                    )
-        if "vcf" in self.input_type:
-            for sample in self.sample_dict:
-                vcf_present = self.sample_dict[sample].keys()
-                if "vcf" not in vcf_present:
-                    errors.append(
-                        KeyError(
-                            f"The VCF file is missing for sample {sample}. This pipeline expects a VCF per sample."
+            if "vcf" in self.input_type:
+                for sample in self.sample_dict:
+                    vcf_present = self.sample_dict[sample].keys()
+                    if "vcf" not in vcf_present:
+                        errors.append(
+                            KeyError(
+                                f"The VCF file is missing for sample {sample}. This pipeline expects a VCF per sample."
+                            )
                         )
-                    )
-        if "bam" in self.input_type:
-            for sample in self.sample_dict:
-                bam_present = self.sample_dict[sample].keys()
-                if "bam" not in bam_present:
-                    errors.append(
-                        KeyError(
-                            f"The BAM file is missing for sample {sample}. This pipeline expects a BAM per sample."
+            if "bam" in self.input_type:
+                for sample in self.sample_dict:
+                    bam_present = self.sample_dict[sample].keys()
+                    if "bam" not in bam_present:
+                        errors.append(
+                            KeyError(
+                                f"The BAM file is missing for sample {sample}. This pipeline expects a BAM per sample."
+                            )
                         )
+
+        elif self.sequencing_tech == "nanopore":
+            for sample in self.sample_dict:
+                nanopore_present = (
+                    "nanopore_input"
+                    in self.sample_dict[sample]
+                    # or "bam" in self.sample_dict[sample]
+                )
+            if not nanopore_present:
+                errors.append(
+                    KeyError(
+                        f"Neither a Nanopore fastq nor a BAM file is present for sample {sample}. This pipeline expects at least one per sample."
                     )
+                )
+                if "fasta" in self.input_type:
+                    if "assembly" not in self.sample_dict[sample]:
+                        errors.append(
+                            KeyError(
+                                f"The assembly is missing for sample {sample}. This pipeline expects an assembly per sample."
+                            )
+                        )
+
         if len(errors) == 0:
             return True
         if len(errors) == 1:

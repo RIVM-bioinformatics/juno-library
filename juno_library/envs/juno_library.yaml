@@ -19,3 +19,4 @@ dependencies:
   - snakefmt=0.8.*
   - pip=23.*
   - mypy=1.1.*
+  - numpy=1.26.4
